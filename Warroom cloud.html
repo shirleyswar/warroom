@@ -1,0 +1,1501 @@
+<!DOCTYPE html>
+<!-- saved from url=(0051)file:///C:/Users/matth/Downloads/WarRoom_Cloud.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎖️ The War Room — Big Matt</title>
+<link href="./Warroom cloud_files/css2" rel="stylesheet">
+<script src="./Warroom cloud_files/supabase-js@2"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #080808; color: #e5e5e5; font-family: 'DM Sans','Segoe UI',sans-serif; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+
+.app { max-width: 1100px; margin: 0 auto; padding: 20px 16px; min-height: 100vh; }
+h1 { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 38px; letter-spacing: 4px; color: #f59e0b; text-align: center; }
+.subtitle { text-align: center; color: #666; font-size: 13px; margin: 4px 0 24px; }
+.subtitle span { color: #4ade80; font-weight: 700; font-size: 11px; }
+hr { border: none; border-top: 2px solid #1f1f1f; margin: 8px 0 20px; }
+
+/* SYNC STATUS */
+.sync { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+.sync.ok { background: #0a2a0a; color: #4ade80; border: 1px solid #166534; }
+.sync.saving { background: #1a1a0a; color: #fbbf24; border: 1px solid #854d0e; }
+.sync.err { background: #2a0a0a; color: #f87171; border: 1px solid #991b1b; }
+
+/* TOP 3 */
+.top3 { background: linear-gradient(135deg,#1a0f00,#0d0d0d); border: 1px solid #92400e; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+.section-title { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 20px; letter-spacing: 2px; margin-bottom: 12px; }
+.top3-row { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; padding: 8px 12px; background: #0d0d0d; border-radius: 6px; border: 1px solid #292929; }
+.top3-flag { font-size: 22px; min-width: 30px; }
+.top3-deal { font-weight: 700; color: #fff; font-size: 14px; }
+.top3-why { color: #999; font-size: 12px; }
+.top3-comm { color: #4ade80; font-weight: 800; font-size: 14px; white-space: nowrap; }
+
+/* BATTLE PLAN */
+.battle { background: linear-gradient(135deg,#0a0a1a,#0d0d0d); border: 1px solid #1e3a5f; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+.battle-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; margin-bottom: 6px; border-radius: 6px; background: #0d0d0d; border: 1px solid #1e1e1e; cursor: grab; user-select: none; transition: opacity 0.2s, border-color 0.2s; }
+.battle-row:active { cursor: grabbing; }
+.battle-row.done { background: #0a1a0a; border-color: #166534; opacity: 0.5; }
+.battle-row.dragging { opacity: 0.3; border-color: #60a5fa; }
+.battle-row.drag-over { border-color: #60a5fa; border-style: dashed; }
+.drag-handle { color: #444; font-size: 14px; cursor: grab; padding: 0 2px; }
+.check { font-size: 16px; cursor: pointer; min-width: 22px; }
+.battle-action { flex: 1; font-size: 13px; }
+.battle-flag { font-size: 11px; color: #f87171; font-weight: 600; white-space: nowrap; }
+.ball-badge { font-size: 11px; font-weight: 700; font-family: monospace; padding: 1px 7px; border-radius: 4px; white-space: nowrap; }
+.ball-me { background: #1a3a1a; color: #4ade80; border: 1px solid #22c55e; }
+.ball-them { background: #3a1a1a; color: #f87171; border: 1px solid #ef4444; }
+.ball-other { background: #2a2a1a; color: #fbbf24; border: 1px solid #f59e0b; }
+
+/* TIME BLOCKS */
+.timeblock { background: #0a0a0a; border: 1px solid #374151; border-radius: 10px; padding: 16px; margin-bottom: 20px; }
+.time-row { display: flex; align-items: center; gap: 12px; padding: 8px 12px; margin-bottom: 6px; background: #0d0d0d; border-radius: 6px; border: 1px solid #1f1f1f; }
+.time-label { min-width: 70px; color: #a78bfa; font-weight: 700; font-size: 12px; font-family: monospace; }
+
+/* SECTIONS */
+.section { margin-bottom: 4px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin: 20px 0 8px; cursor: pointer; }
+.section-label { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 20px; letter-spacing: 1px; text-transform: uppercase; }
+.section-total { font-size: 12px; background: #1c1400; border: 1px solid #854d0e; border-radius: 6px; padding: 2px 10px; color: #fbbf24; font-weight: 700; }
+.chevron { color: #555; font-size: 12px; }
+
+/* TABLE */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+thead tr { background: #111; border-bottom: 1px solid #333; }
+th { padding: 6px 10px; text-align: left; color: #888; font-weight: 600; font-size: 11px; white-space: nowrap; }
+th.drag-col { width: 28px; }
+th.del-col { width: 28px; }
+tbody tr:nth-child(even) { background: #111; }
+tbody tr:nth-child(odd) { background: #0d0d0d; }
+tbody tr { transition: background 0.15s; cursor: grab; }
+tbody tr:active { cursor: grabbing; }
+tbody tr.dragging { opacity: 0.3; }
+tbody tr.drag-over td { border-top: 2px solid #f59e0b; }
+td { padding: 7px 10px; vertical-align: middle; }
+td.comm { color: #4ade80; font-weight: 700; }
+td.flag-cell { color: #f87171; }
+
+/* EDITABLE CELLS */
+.editable { cursor: text; border-radius: 3px; padding: 1px 3px; display: inline-block; min-width: 24px; }
+.editable:hover { background: #1f1f1f; }
+.editable input, .editable textarea { background: #1a1a1a; color: #e5e5e5; border: 1px solid #f59e0b; border-radius: 4px; padding: 2px 6px; font-size: 12px; font-family: inherit; outline: none; width: 100%; min-width: 80px; resize: vertical; }
+
+/* EMOJI PICKER */
+.emoji-picker-wrap { position: relative; display: inline-block; }
+.emoji-picker-btn { background: none; border: none; cursor: pointer; font-size: 16px; padding: 2px 4px; border-radius: 4px; }
+.emoji-picker-btn:hover { background: #1f1f1f; }
+.emoji-dropdown { position: absolute; top: 100%; left: 0; z-index: 100; background: #1a1a1a; border: 1px solid #333; border-radius: 8px; padding: 8px; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; min-width: 180px; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+.emoji-opt { font-size: 18px; padding: 4px; border-radius: 4px; cursor: pointer; text-align: center; transition: background 0.1s; }
+.emoji-opt:hover { background: #333; }
+
+/* BALL SELECT */
+select.ball-select { background: #1a1a1a; color: #e5e5e5; border: 1px solid #333; border-radius: 4px; padding: 2px 4px; font-size: 11px; cursor: pointer; }
+select.flag-select { background: #1a1a1a; color: #f87171; border: 1px solid #333; border-radius: 4px; padding: 2px 4px; font-size: 11px; cursor: pointer; }
+
+/* BUTTONS */
+.add-btn { background: transparent; border-radius: 5px; padding: 3px 10px; font-size: 11px; cursor: pointer; font-weight: 700; }
+.del-btn { background: transparent; color: #444; border: none; cursor: pointer; font-size: 13px; padding: 0 2px; }
+.del-btn:hover { color: #f87171; }
+.drag-btn { background: transparent; color: #444; border: none; cursor: grab; font-size: 13px; padding: 0 2px; }
+
+/* PIPELINE */
+.pipeline { background: #0a0a0a; border: 1px solid #292929; border-radius: 10px; padding: 16px; margin-top: 24px; }
+.pipeline-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+
+/* MODAL */
+.modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.modal { background: #111; border-radius: 12px; padding: 24px; width: 100%; max-width: 500px; }
+.modal-title { font-family: 'Bebas Neue', Impact, sans-serif; font-size: 22px; letter-spacing: 2px; margin-bottom: 16px; }
+.modal label { font-size: 11px; color: #888; margin-bottom: 3px; text-transform: uppercase; display: block; }
+.modal input, .modal select, .modal textarea { background: #1a1a1a; color: #e5e5e5; border: 1px solid #333; border-radius: 4px; padding: 4px 8px; width: 100%; font-size: 13px; outline: none; font-family: inherit; margin-bottom: 10px; }
+.modal-btns { display: flex; gap: 10px; margin-top: 16px; }
+.modal-btns button { flex: 1; border: none; border-radius: 6px; padding: 9px 0; font-weight: 700; cursor: pointer; font-size: 14px; }
+.btn-confirm { color: #000; }
+.btn-cancel { background: #222; color: #888; border: 1px solid #333 !important; }
+
+/* FOOTER */
+.footer { text-align: center; margin-top: 32px; color: #333; font-size: 11px; }
+
+/* WIN LOG */
+.win-log { margin-top: 24px; background: #0a1a0a; border: 1px solid #166534; border-radius: 10px; padding: 16px; }
+.win-row { font-size: 13px; color: #555; text-decoration: line-through; padding: 4px 0; border-bottom: 1px solid #111; }
+
+.save-btn { margin-left: 14px; background: #14532d; color: #4ade80; border: 1px solid #16a34a; border-radius: 4px; padding: 2px 10px; font-size: 11px; cursor: pointer; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <h1>🎖️ THE WAR ROOM</h1>
+  <div class="subtitle">
+    <span id="sync-status" class="sync ok">● Live</span>
+    &nbsp;|&nbsp; Big Matt &nbsp;|&nbsp; 75% Split &nbsp;|&nbsp;
+    <span id="last-updated">Updated: 3/11/26</span>
+    <button class="save-btn" onclick="forceSave()">💾 Save</button>
+  </div>
+  <hr>
+  <div id="root">
+    <div class="top3">
+    <div class="section-title" style="color:#f59e0b">🧠 THIS WEEK'S TOP 3 — HOT LEADS → CONTRACT</div>
+    
+      <div class="top3-row">
+        <span class="top3-flag">🚨</span>
+        <div style="flex:1">
+          <div class="top3-deal">Melissa Stockstill — LA Blue (Separate Deal)</div>
+          <div class="top3-why">HARD DEADLINE — call TODAY 3/11. She departs 3/13. Do not miss this window.</div>
+        </div>
+        <div class="top3-comm">TBD</div>
+      </div>
+    
+      <div class="top3-row">
+        <span class="top3-flag">🔥</span>
+        <div style="flex:1">
+          <div class="top3-deal">Wicker Park — Hobby Lobby Center</div>
+          <div class="top3-why">$200k commission. Get the answer. Biggest single move you can make this week.</div>
+        </div>
+        <div class="top3-comm">$200,000</div>
+      </div>
+    
+      <div class="top3-row">
+        <span class="top3-flag">👑</span>
+        <div style="flex:1">
+          <div class="top3-deal">Hank Saurage — Plaquemine PSA</div>
+          <div class="top3-why">Ball is YOUR COURT. Review buyer PSA comments and respond. EHVP — always first.</div>
+        </div>
+        <div class="top3-comm">$14,063</div>
+      </div>
+    
+  </div>
+    <div class="battle">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="color:#60a5fa">🔥 TODAY'S BATTLE PLAN</div>
+      <button class="add-btn" style="color:#60a5fa;border:1px solid #60a5fa" onclick="addBattleRow()">➕ Add</button>
+    </div>
+    <div class="battle-row " draggable="true" ondragstart="onDragStart(event,0,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,0,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(1)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-1-action" onclick="startEdit(&#39;bp-1-action&#39;)" style="color:#e5e5e5">🚨 Call Melissa Stockstill — LA Blue (separate deal) — DEPARTS 3/13</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-1-flag" onclick="startEdit(&#39;bp-1-flag&#39;)" style="color:#f87171">🚨 HARD DEADLINE</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===1);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==1)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,1,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,1,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(2)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-2-action" onclick="startEdit(&#39;bp-2-action&#39;)" style="color:#e5e5e5">⚖️ Finalize Lease for Signature — Art / Call Daniel, Etc.</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-2-flag" onclick="startEdit(&#39;bp-2-flag&#39;)" style="color:#f87171">🔥 PRIORITY</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===2);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==2)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,2,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,2,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(3)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-3-action" onclick="startEdit(&#39;bp-3-action&#39;)" style="color:#e5e5e5">🔥 GVI Dutch Bros — File Executed PSA</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-3-flag" onclick="startEdit(&#39;bp-3-flag&#39;)" style="color:#f87171">📝 ACTION</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===3);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==3)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,3,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,3,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,3,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(4)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-4-action" onclick="startEdit(&#39;bp-4-action&#39;)" style="color:#e5e5e5">Get Jan Frey Signature on PSA — 8:30 AM</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-4-flag" onclick="startEdit(&#39;bp-4-flag&#39;)" style="color:#f87171">⏰ 8:30 AM</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===4);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==4)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,4,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,4,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,4,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(5)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-5-action" onclick="startEdit(&#39;bp-5-action&#39;)" style="color:#e5e5e5">🚨 Get Official Response LA Blue on Jessie Babcock — Production Building Monroe</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-5-flag" onclick="startEdit(&#39;bp-5-flag&#39;)" style="color:#f87171">🚨 URGENT</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===5);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==5)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,5,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,5,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,5,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(6)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-6-action" onclick="startEdit(&#39;bp-6-action&#39;)" style="color:#e5e5e5">VALS — Call Red Robinson: Rough In Electrical Inspection</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-6-flag" onclick="startEdit(&#39;bp-6-flag&#39;)" style="color:#f87171">🔧</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===6);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==6)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,6,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,6,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,6,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(7)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-7-action" onclick="startEdit(&#39;bp-7-action&#39;)" style="color:#e5e5e5">VALS — Framing Inspection</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-7-flag" onclick="startEdit(&#39;bp-7-flag&#39;)" style="color:#f87171">🔧</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===7);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==7)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,7,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,7,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,7,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(8)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-8-action" onclick="startEdit(&#39;bp-8-action&#39;)" style="color:#e5e5e5">VALS — Send Leslie Newman DocuSign</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-8-flag" onclick="startEdit(&#39;bp-8-flag&#39;)" style="color:#f87171">📤</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===8);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==8)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,8,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,8,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,8,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(9)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-9-action" onclick="startEdit(&#39;bp-9-action&#39;)" style="color:#e5e5e5">Call Sean McLaurin — RaceTrac</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-9-flag" onclick="startEdit(&#39;bp-9-flag&#39;)" style="color:#f87171">📞</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===9);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==9)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,9,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,9,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,9,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(10)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-10-action" onclick="startEdit(&#39;bp-10-action&#39;)" style="color:#e5e5e5">Get Parking Figures Back to LA Blue</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-10-flag" onclick="startEdit(&#39;bp-10-flag&#39;)" style="color:#f87171">📋</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===10);if(b)b.ball=this.value})">
+          <option value="me" selected="">🟢 Me</option>
+          <option value="them">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==10)})">✕</button>
+      </div><div class="battle-row " draggable="true" ondragstart="onDragStart(event,10,&#39;battle&#39;,&#39;battle&#39;)" ondragover="onDragOver(event,10,&#39;battle&#39;,&#39;battle&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,10,&#39;battle&#39;,&#39;battle&#39;)">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(11)">⬜</span>
+        <span class="battle-action" style="text-decoration:none">
+          <span class="editable" data-cell="bp-11-action" onclick="startEdit(&#39;bp-11-action&#39;)" style="color:#e5e5e5">AWC — Ball in Broker's Court (Tim Hurless)</span>
+        </span>
+        <span class="battle-flag"><span class="editable" data-cell="bp-11-flag" onclick="startEdit(&#39;bp-11-flag&#39;)" style="color:#f87171">👀 THEIR COURT</span></span>
+        <select class="ball-select" onchange="upd(s=&gt;{const b=s.battlePlan.find(x=&gt;x.id===11);if(b)b.ball=this.value})">
+          <option value="me">🟢 Me</option>
+          <option value="them" selected="">🔴 Them</option>
+          <option value="other">🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=&gt;{s.battlePlan=s.battlePlan.filter(x=&gt;x.id!==11)})">✕</button>
+      </div>
+  </div>
+    <div class="timeblock">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="color:#a78bfa">⏰ TODAY'S TIME BLOCKS</div>
+      <button class="add-btn" style="color:#a78bfa;border:1px solid #a78bfa" onclick="upd(s=&gt;s.timeBlocks.push({id:1773198246729,time:&#39;—&#39;,event:&#39;New event&#39;,flag:&#39;&#39;}))">➕ Add</button>
+    </div>
+    <div class="time-row">
+        <span class="time-label"><span class="editable" data-cell="tb-1-time" onclick="startEdit(&#39;tb-1-time&#39;)" style="color:#a78bfa">8:30 AM</span></span>
+        <span style="flex:1;font-size:13px"><span class="editable" data-cell="tb-1-event" onclick="startEdit(&#39;tb-1-event&#39;)" style="color:#e5e5e5">Jan Frey PSA Execution</span></span>
+        <span style="color:#f87171;font-size:11px"><span class="editable" data-cell="tb-1-flag" onclick="startEdit(&#39;tb-1-flag&#39;)" style="color:#f87171">📝</span></span>
+        <button class="del-btn" onclick="upd(s=&gt;{s.timeBlocks=s.timeBlocks.filter(x=&gt;x.id!==1)})">✕</button>
+      </div><div class="time-row">
+        <span class="time-label"><span class="editable" data-cell="tb-2-time" onclick="startEdit(&#39;tb-2-time&#39;)" style="color:#a78bfa">10:00 AM</span></span>
+        <span style="flex:1;font-size:13px"><span class="editable" data-cell="tb-2-event" onclick="startEdit(&#39;tb-2-event&#39;)" style="color:#e5e5e5">📋 LACDB Board Meeting</span></span>
+        <span style="color:#f87171;font-size:11px"><span class="editable" data-cell="tb-2-flag" onclick="startEdit(&#39;tb-2-flag&#39;)" style="color:#f87171">📋</span></span>
+        <button class="del-btn" onclick="upd(s=&gt;{s.timeBlocks=s.timeBlocks.filter(x=&gt;x.id!==2)})">✕</button>
+      </div><div class="time-row">
+        <span class="time-label"><span class="editable" data-cell="tb-3-time" onclick="startEdit(&#39;tb-3-time&#39;)" style="color:#a78bfa">2:00 PM</span></span>
+        <span style="flex:1;font-size:13px"><span class="editable" data-cell="tb-3-event" onclick="startEdit(&#39;tb-3-event&#39;)" style="color:#e5e5e5">🏠 Anne Underwood @ Edinburgh</span></span>
+        <span style="color:#f87171;font-size:11px"><span class="editable" data-cell="tb-3-flag" onclick="startEdit(&#39;tb-3-flag&#39;)" style="color:#f87171">🏠</span></span>
+        <button class="del-btn" onclick="upd(s=&gt;{s.timeBlocks=s.timeBlocks.filter(x=&gt;x.id!==3)})">✕</button>
+      </div>
+  </div>
+    <div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;ehvp&#39;)">
+      <span class="section-label" style="color:#f59e0b">👑 EHVP — ALWAYS FIRST</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$14,063+</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Person</th><th>Deal</th><th>Action</th><th>Comm</th><th>Ball</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;ehvp&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;ehvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;ehvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;ehvp&#39;].rows=s.sections[&#39;ehvp&#39;].rows.filter(r=&gt;r.id!==9)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="ehvp-9-person" onclick="startEdit(&#39;ehvp-9-person&#39;)" style="color:#f59e0b">👑 Hank Saurage</span></td><td><span class="editable" data-cell="ehvp-9-deal" onclick="startEdit(&#39;ehvp-9-deal&#39;)" style="color:#f59e0b">Plaquemine PSA</span></td><td><span class="editable" data-cell="ehvp-9-action" onclick="startEdit(&#39;ehvp-9-action&#39;)" style="color:#e5e5e5">Review Buyer PSA Comments &amp; Respond</span></td><td class="comm"><span class="editable" data-cell="ehvp-9-comm" onclick="startEdit(&#39;ehvp-9-comm&#39;)" style="color:#4ade80">$14,063</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;ehvp&#39;].rows.find(x=&gt;x.id===9);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="ehvp-9-flag" onclick="startEdit(&#39;ehvp-9-flag&#39;)" style="color:#f87171">⚖️ MY COURT</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;ehvp&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;ehvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;ehvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;ehvp&#39;].rows=s.sections[&#39;ehvp&#39;].rows.filter(r=&gt;r.id!==10)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="ehvp-10-person" onclick="startEdit(&#39;ehvp-10-person&#39;)" style="color:#f59e0b">👑 Edward Rotenberg</span></td><td><span class="editable" data-cell="ehvp-10-deal" onclick="startEdit(&#39;ehvp-10-deal&#39;)" style="color:#f59e0b">2831 Darla Ave</span></td><td><span class="editable" data-cell="ehvp-10-action" onclick="startEdit(&#39;ehvp-10-action&#39;)" style="color:#e5e5e5">Punch List — Remaining Work</span></td><td class="comm"><span class="editable" data-cell="ehvp-10-comm" onclick="startEdit(&#39;ehvp-10-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;ehvp&#39;].rows.find(x=&gt;x.id===10);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them" selected="">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="ehvp-10-flag" onclick="startEdit(&#39;ehvp-10-flag&#39;)" style="color:#f87171">👀</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#f59e0b;border:1px solid #f59e0b" onclick="openAddModal(&#39;ehvp&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;collect&#39;)">
+      <span class="section-label" style="color:#f87171">🚨 COLLECT NOW — CASH IN HAND</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$61,600</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Deal</th><th>Action</th><th>Comm</th><th>Ball</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;collect&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;collect&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;collect&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;collect&#39;].rows=s.sections[&#39;collect&#39;].rows.filter(r=&gt;r.id!==11)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="collect-11-deal" onclick="startEdit(&#39;collect-11-deal&#39;)" style="color:#f87171">💰 LA Blue Lease — Worley Inc.</span></td><td><span class="editable" data-cell="collect-11-action" onclick="startEdit(&#39;collect-11-action&#39;)" style="color:#e5e5e5">$30k due NOW</span></td><td class="comm"><span class="editable" data-cell="collect-11-comm" onclick="startEdit(&#39;collect-11-comm&#39;)" style="color:#4ade80">$60,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;collect&#39;].rows.find(x=&gt;x.id===11);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them" selected="">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="collect-11-flag" onclick="startEdit(&#39;collect-11-flag&#39;)" style="color:#f87171">🚨</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;collect&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;collect&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;collect&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;collect&#39;].rows=s.sections[&#39;collect&#39;].rows.filter(r=&gt;r.id!==12)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="collect-12-deal" onclick="startEdit(&#39;collect-12-deal&#39;)" style="color:#f87171">💰 619 Jefferson — Bob Belk ⭐ HVP</span></td><td><span class="editable" data-cell="collect-12-action" onclick="startEdit(&#39;collect-12-action&#39;)" style="color:#e5e5e5">Lease closed — collect</span></td><td class="comm"><span class="editable" data-cell="collect-12-comm" onclick="startEdit(&#39;collect-12-comm&#39;)" style="color:#4ade80">$1,600</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;collect&#39;].rows.find(x=&gt;x.id===12);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them" selected="">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="collect-12-flag" onclick="startEdit(&#39;collect-12-flag&#39;)" style="color:#f87171">🚨</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#f87171;border:1px solid #f87171" onclick="openAddModal(&#39;collect&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;active&#39;)">
+      <span class="section-label" style="color:#fdba74">🔥 ACTIVE DEALS — HIGHEST COMMISSION</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$479,500+</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Deal</th><th>Action</th><th>Comm</th><th>Ball</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==42)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="active-42-deal" onclick="startEdit(&#39;active-42-deal&#39;)" style="color:#fdba74">🚨 Melissa Stockstill — LA Blue (Separate Deal)</span></td><td><span class="editable" data-cell="active-42-action" onclick="startEdit(&#39;active-42-action&#39;)" style="color:#e5e5e5">CALL TODAY 3/11 — Departs company 3/13. Hard deadline.</span></td><td class="comm"><span class="editable" data-cell="active-42-comm" onclick="startEdit(&#39;active-42-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===42);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-42-flag" onclick="startEdit(&#39;active-42-flag&#39;)" style="color:#f87171">🚨 3/11 DEADLINE</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==13)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="active-13-deal" onclick="startEdit(&#39;active-13-deal&#39;)" style="color:#fdba74">📣 LA Blue Monroe Portfolio</span></td><td><span class="editable" data-cell="active-13-action" onclick="startEdit(&#39;active-13-action&#39;)" style="color:#e5e5e5">Activate all platforms / Get with Ashley</span></td><td class="comm"><span class="editable" data-cell="active-13-comm" onclick="startEdit(&#39;active-13-comm&#39;)" style="color:#4ade80">$300,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===13);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-13-flag" onclick="startEdit(&#39;active-13-flag&#39;)" style="color:#f87171">🔥</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==14)})">✕</button></td>
+    <td style="color:#555;font-size:13px">3</td><td><span class="editable" data-cell="active-14-deal" onclick="startEdit(&#39;active-14-deal&#39;)" style="color:#fdba74">🚗 RaceTrac Land Acquisition</span></td><td><span class="editable" data-cell="active-14-action" onclick="startEdit(&#39;active-14-action&#39;)" style="color:#e5e5e5">Awaiting DOTD Approval</span></td><td class="comm"><span class="editable" data-cell="active-14-comm" onclick="startEdit(&#39;active-14-comm&#39;)" style="color:#4ade80">$48,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===14);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them" selected="">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-14-flag" onclick="startEdit(&#39;active-14-flag&#39;)" style="color:#f87171">⏳</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,3,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,3,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,3,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==15)})">✕</button></td>
+    <td style="color:#555;font-size:13px">4</td><td><span class="editable" data-cell="active-15-deal" onclick="startEdit(&#39;active-15-deal&#39;)" style="color:#fdba74">🏢 1301 Hudson Lane — Monroe</span></td><td><span class="editable" data-cell="active-15-action" onclick="startEdit(&#39;active-15-action&#39;)" style="color:#e5e5e5">Offering memo delivered — Push Sam for next action</span></td><td class="comm"><span class="editable" data-cell="active-15-comm" onclick="startEdit(&#39;active-15-comm&#39;)" style="color:#4ade80">$31,500</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===15);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them" selected="">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-15-flag" onclick="startEdit(&#39;active-15-flag&#39;)" style="color:#f87171">📋</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,4,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,4,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,4,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==16)})">✕</button></td>
+    <td style="color:#555;font-size:13px">5</td><td><span class="editable" data-cell="active-16-deal" onclick="startEdit(&#39;active-16-deal&#39;)" style="color:#fdba74">🛋️ Ashley Furniture Portfolio</span></td><td><span class="editable" data-cell="active-16-action" onclick="startEdit(&#39;active-16-action&#39;)" style="color:#e5e5e5">Kimberly Boger — Get new DSG Contact</span></td><td class="comm"><span class="editable" data-cell="active-16-comm" onclick="startEdit(&#39;active-16-comm&#39;)" style="color:#4ade80">$50,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===16);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-16-flag" onclick="startEdit(&#39;active-16-flag&#39;)" style="color:#f87171">📞</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,5,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,5,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,5,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==17)})">✕</button></td>
+    <td style="color:#555;font-size:13px">6</td><td><span class="editable" data-cell="active-17-deal" onclick="startEdit(&#39;active-17-deal&#39;)" style="color:#fdba74">☕ Ashley Furniture — Dutch Brothers Outparcel</span></td><td><span class="editable" data-cell="active-17-action" onclick="startEdit(&#39;active-17-action&#39;)" style="color:#e5e5e5">Work deal</span></td><td class="comm"><span class="editable" data-cell="active-17-comm" onclick="startEdit(&#39;active-17-comm&#39;)" style="color:#4ade80">$16,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===17);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-17-flag" onclick="startEdit(&#39;active-17-flag&#39;)" style="color:#f87171">🔄</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,6,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,6,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,6,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==18)})">✕</button></td>
+    <td style="color:#555;font-size:13px">7</td><td><span class="editable" data-cell="active-18-deal" onclick="startEdit(&#39;active-18-deal&#39;)" style="color:#fdba74">🏠 619 Jefferson — Bob Belk ⭐ HVP SALE</span></td><td><span class="editable" data-cell="active-18-action" onclick="startEdit(&#39;active-18-action&#39;)" style="color:#e5e5e5">Review Financials</span></td><td class="comm"><span class="editable" data-cell="active-18-comm" onclick="startEdit(&#39;active-18-comm&#39;)" style="color:#4ade80">$18,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===18);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-18-flag" onclick="startEdit(&#39;active-18-flag&#39;)" style="color:#f87171">📊</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,7,&#39;section&#39;,&#39;active&#39;)" ondragover="onDragOver(event,7,&#39;section&#39;,&#39;active&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,7,&#39;section&#39;,&#39;active&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;active&#39;].rows=s.sections[&#39;active&#39;].rows.filter(r=&gt;r.id!==19)})">✕</button></td>
+    <td style="color:#555;font-size:13px">8</td><td><span class="editable" data-cell="active-19-deal" onclick="startEdit(&#39;active-19-deal&#39;)" style="color:#fdba74">🤠 Steve — Denham / 51494 La Hwy 16</span></td><td><span class="editable" data-cell="active-19-action" onclick="startEdit(&#39;active-19-action&#39;)" style="color:#e5e5e5">Listing pitch</span></td><td class="comm"><span class="editable" data-cell="active-19-comm" onclick="startEdit(&#39;active-19-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;active&#39;].rows.find(x=&gt;x.id===19);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="active-19-flag" onclick="startEdit(&#39;active-19-flag&#39;)" style="color:#f87171">📣</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#fdba74;border:1px solid #fdba74" onclick="openAddModal(&#39;active&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;hvp&#39;)">
+      <span class="section-label" style="color:#c4b5fd">⭐ HVP DEALS</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$250,400+</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Person</th><th>Deal</th><th>Action</th><th>Comm</th><th>Ball</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==20)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="hvp-20-person" onclick="startEdit(&#39;hvp-20-person&#39;)" style="color:#c4b5fd">🔔 Phil Moody</span></td><td><span class="editable" data-cell="hvp-20-deal" onclick="startEdit(&#39;hvp-20-deal&#39;)" style="color:#c4b5fd">Tenant in default</span></td><td><span class="editable" data-cell="hvp-20-action" onclick="startEdit(&#39;hvp-20-action&#39;)" style="color:#e5e5e5">🚨 Return Ben Stalter call — Valuation/Pricing Guidance</span></td><td class="comm"><span class="editable" data-cell="hvp-20-comm" onclick="startEdit(&#39;hvp-20-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===20);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-20-flag" onclick="startEdit(&#39;hvp-20-flag&#39;)" style="color:#f87171">🚨</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==21)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="hvp-21-person" onclick="startEdit(&#39;hvp-21-person&#39;)" style="color:#c4b5fd">🌬️ Windy Gladney</span></td><td><span class="editable" data-cell="hvp-21-deal" onclick="startEdit(&#39;hvp-21-deal&#39;)" style="color:#c4b5fd">$3M listing</span></td><td><span class="editable" data-cell="hvp-21-action" onclick="startEdit(&#39;hvp-21-action&#39;)" style="color:#e5e5e5">Discuss City of St. George email</span></td><td class="comm"><span class="editable" data-cell="hvp-21-comm" onclick="startEdit(&#39;hvp-21-comm&#39;)" style="color:#4ade80">$33,750</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===21);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-21-flag" onclick="startEdit(&#39;hvp-21-flag&#39;)" style="color:#f87171">📧</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==22)})">✕</button></td>
+    <td style="color:#555;font-size:13px">3</td><td><span class="editable" data-cell="hvp-22-person" onclick="startEdit(&#39;hvp-22-person&#39;)" style="color:#c4b5fd">🏬 Wicker Park</span></td><td><span class="editable" data-cell="hvp-22-deal" onclick="startEdit(&#39;hvp-22-deal&#39;)" style="color:#c4b5fd">Hobby Lobby Center</span></td><td><span class="editable" data-cell="hvp-22-action" onclick="startEdit(&#39;hvp-22-action&#39;)" style="color:#e5e5e5">Get answer on Hobby Lobby Center</span></td><td class="comm"><span class="editable" data-cell="hvp-22-comm" onclick="startEdit(&#39;hvp-22-comm&#39;)" style="color:#4ade80">$200,000</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===22);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-22-flag" onclick="startEdit(&#39;hvp-22-flag&#39;)" style="color:#f87171">❓</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,3,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,3,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,3,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==23)})">✕</button></td>
+    <td style="color:#555;font-size:13px">4</td><td><span class="editable" data-cell="hvp-23-person" onclick="startEdit(&#39;hvp-23-person&#39;)" style="color:#c4b5fd">🍕 Matthew Kohnke</span></td><td><span class="editable" data-cell="hvp-23-deal" onclick="startEdit(&#39;hvp-23-deal&#39;)" style="color:#c4b5fd">Val's Restaurant — ABC Permit</span></td><td><span class="editable" data-cell="hvp-23-action" onclick="startEdit(&#39;hvp-23-action&#39;)" style="color:#e5e5e5">Docs needed from Katherine — MK &amp; LN schedule fingerprint</span></td><td class="comm"><span class="editable" data-cell="hvp-23-comm" onclick="startEdit(&#39;hvp-23-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===23);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-23-flag" onclick="startEdit(&#39;hvp-23-flag&#39;)" style="color:#f87171">🔥</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,4,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,4,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,4,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==24)})">✕</button></td>
+    <td style="color:#555;font-size:13px">5</td><td><span class="editable" data-cell="hvp-24-person" onclick="startEdit(&#39;hvp-24-person&#39;)" style="color:#c4b5fd">🏛️ Daniel L.</span></td><td><span class="editable" data-cell="hvp-24-deal" onclick="startEdit(&#39;hvp-24-deal&#39;)" style="color:#c4b5fd">Government Village I</span></td><td><span class="editable" data-cell="hvp-24-action" onclick="startEdit(&#39;hvp-24-action&#39;)" style="color:#e5e5e5">PSA Negotiations</span></td><td class="comm"><span class="editable" data-cell="hvp-24-comm" onclick="startEdit(&#39;hvp-24-comm&#39;)" style="color:#4ade80">$16,650</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===24);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-24-flag" onclick="startEdit(&#39;hvp-24-flag&#39;)" style="color:#f87171">📝</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,5,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,5,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,5,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==43)})">✕</button></td>
+    <td style="color:#555;font-size:13px">6</td><td><span class="editable" data-cell="hvp-43-person" onclick="startEdit(&#39;hvp-43-person&#39;)" style="color:#c4b5fd">🏬 Wicker Park</span></td><td><span class="editable" data-cell="hvp-43-deal" onclick="startEdit(&#39;hvp-43-deal&#39;)" style="color:#c4b5fd">University View</span></td><td><span class="editable" data-cell="hvp-43-action" onclick="startEdit(&#39;hvp-43-action&#39;)" style="color:#e5e5e5">Get parking size for repair</span></td><td class="comm"><span class="editable" data-cell="hvp-43-comm" onclick="startEdit(&#39;hvp-43-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===43);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-43-flag" onclick="startEdit(&#39;hvp-43-flag&#39;)" style="color:#f87171">🔧</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,6,&#39;section&#39;,&#39;hvp&#39;)" ondragover="onDragOver(event,6,&#39;section&#39;,&#39;hvp&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,6,&#39;section&#39;,&#39;hvp&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;hvp&#39;].rows=s.sections[&#39;hvp&#39;].rows.filter(r=&gt;r.id!==44)})">✕</button></td>
+    <td style="color:#555;font-size:13px">7</td><td><span class="editable" data-cell="hvp-44-person" onclick="startEdit(&#39;hvp-44-person&#39;)" style="color:#c4b5fd">🏬 Wicker Park / Crawford Square</span></td><td><span class="editable" data-cell="hvp-44-deal" onclick="startEdit(&#39;hvp-44-deal&#39;)" style="color:#c4b5fd">Property Inspection</span></td><td><span class="editable" data-cell="hvp-44-action" onclick="startEdit(&#39;hvp-44-action&#39;)" style="color:#e5e5e5">Return call — property inspection</span></td><td class="comm"><span class="editable" data-cell="hvp-44-comm" onclick="startEdit(&#39;hvp-44-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;hvp&#39;].rows.find(x=&gt;x.id===44);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="hvp-44-flag" onclick="startEdit(&#39;hvp-44-flag&#39;)" style="color:#f87171">📞</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#c4b5fd;border:1px solid #c4b5fd" onclick="openAddModal(&#39;hvp&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;contract&#39;)">
+      <span class="section-label" style="color:#6ee7b7">📝 UNDER CONTRACT</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$38,287</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Deal</th><th>Status</th><th>Comm</th><th>Ball</th><th>Timeline</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;contract&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;contract&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;contract&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;contract&#39;].rows=s.sections[&#39;contract&#39;].rows.filter(r=&gt;r.id!==25)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="contract-25-deal" onclick="startEdit(&#39;contract-25-deal&#39;)" style="color:#6ee7b7">🛣️ Scenic Hwy — Burnhams</span></td><td><span class="editable" data-cell="contract-25-status" onclick="startEdit(&#39;contract-25-status&#39;)" style="color:#e5e5e5">🟢 In Closing Period — closes by 5/8/26</span></td><td class="comm"><span class="editable" data-cell="contract-25-comm" onclick="startEdit(&#39;contract-25-comm&#39;)" style="color:#4ade80">$8,437</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;contract&#39;].rows.find(x=&gt;x.id===25);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other" selected="">🟡 Other</option>
+    </select></td><td><span class="editable" data-cell="contract-25-timeline" onclick="startEdit(&#39;contract-25-timeline&#39;)" style="color:#e5e5e5">60 days</span></td><td class="flag-cell"><span class="editable" data-cell="contract-25-flag" onclick="startEdit(&#39;contract-25-flag&#39;)" style="color:#f87171">📅</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;contract&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;contract&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;contract&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;contract&#39;].rows=s.sections[&#39;contract&#39;].rows.filter(r=&gt;r.id!==45)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="contract-45-deal" onclick="startEdit(&#39;contract-45-deal&#39;)" style="color:#6ee7b7">☕ GVI — Dutch Brothers</span></td><td><span class="editable" data-cell="contract-45-status" onclick="startEdit(&#39;contract-45-status&#39;)" style="color:#e5e5e5">🟢 Under Contract — Need Pertinent Dates, Deposit &amp; Deliver DD Material</span></td><td class="comm"><span class="editable" data-cell="contract-45-comm" onclick="startEdit(&#39;contract-45-comm&#39;)" style="color:#4ade80">$16,650</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;contract&#39;].rows.find(x=&gt;x.id===45);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td><span class="editable" data-cell="contract-45-timeline" onclick="startEdit(&#39;contract-45-timeline&#39;)" style="color:#e5e5e5">TBD</span></td><td class="flag-cell"><span class="editable" data-cell="contract-45-flag" onclick="startEdit(&#39;contract-45-flag&#39;)" style="color:#f87171">🔥</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;contract&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;contract&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;contract&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;contract&#39;].rows=s.sections[&#39;contract&#39;].rows.filter(r=&gt;r.id!==46)})">✕</button></td>
+    <td style="color:#555;font-size:13px">3</td><td><span class="editable" data-cell="contract-46-deal" onclick="startEdit(&#39;contract-46-deal&#39;)" style="color:#6ee7b7">🏢 Donnie Braud — 4950 Government St</span></td><td><span class="editable" data-cell="contract-46-status" onclick="startEdit(&#39;contract-46-status&#39;)" style="color:#e5e5e5">🟢 Under Contract — Need Pertinent Dates, Deposit &amp; Deliver DD Material</span></td><td class="comm"><span class="editable" data-cell="contract-46-comm" onclick="startEdit(&#39;contract-46-comm&#39;)" style="color:#4ade80">$13,200</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;contract&#39;].rows.find(x=&gt;x.id===46);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td><span class="editable" data-cell="contract-46-timeline" onclick="startEdit(&#39;contract-46-timeline&#39;)" style="color:#e5e5e5">TBD</span></td><td class="flag-cell"><span class="editable" data-cell="contract-46-flag" onclick="startEdit(&#39;contract-46-flag&#39;)" style="color:#f87171">📋</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#6ee7b7;border:1px solid #6ee7b7" onclick="openAddModal(&#39;contract&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;pitch&#39;)">
+      <span class="section-label" style="color:#7dd3fc">📅 UPCOMING PITCH / LISTING</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$10,125</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Deal</th><th>Action</th><th>Comm</th><th>Ball</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;pitch&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;pitch&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;pitch&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;pitch&#39;].rows=s.sections[&#39;pitch&#39;].rows.filter(r=&gt;r.id!==26)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="pitch-26-deal" onclick="startEdit(&#39;pitch-26-deal&#39;)" style="color:#7dd3fc">🍱 BR Food Bank</span></td><td><span class="editable" data-cell="pitch-26-action" onclick="startEdit(&#39;pitch-26-action&#39;)" style="color:#e5e5e5">Get listing agreement signed — DocuSign in food bank's court</span></td><td class="comm"><span class="editable" data-cell="pitch-26-comm" onclick="startEdit(&#39;pitch-26-comm&#39;)" style="color:#4ade80">$10,125</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;pitch&#39;].rows.find(x=&gt;x.id===26);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them" selected="">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="pitch-26-flag" onclick="startEdit(&#39;pitch-26-flag&#39;)" style="color:#f87171">📤 THEIR COURT</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#7dd3fc;border:1px solid #7dd3fc" onclick="openAddModal(&#39;pitch&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;pending&#39;)">
+      <span class="section-label" style="color:#94a3b8">🔄 PENDING / ACTION NEEDED</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="section-total">$20,858+</span>
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Deal</th><th>Action</th><th>Comm</th><th>Ball</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;pending&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;pending&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;pending&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;pending&#39;].rows=s.sections[&#39;pending&#39;].rows.filter(r=&gt;r.id!==27)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="pending-27-deal" onclick="startEdit(&#39;pending-27-deal&#39;)" style="color:#94a3b8">🏡 Debbie Geurin — Bluebonnet</span></td><td><span class="editable" data-cell="pending-27-action" onclick="startEdit(&#39;pending-27-action&#39;)" style="color:#e5e5e5">Brooks T. to call Debbie re: showing</span></td><td class="comm"><span class="editable" data-cell="pending-27-comm" onclick="startEdit(&#39;pending-27-comm&#39;)" style="color:#4ade80">TBD</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;pending&#39;].rows.find(x=&gt;x.id===27);if(r)r.ball=this.value})">
+      <option value="me">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other" selected="">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="pending-27-flag" onclick="startEdit(&#39;pending-27-flag&#39;)" style="color:#f87171">👀</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;pending&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;pending&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;pending&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;pending&#39;].rows=s.sections[&#39;pending&#39;].rows.filter(r=&gt;r.id!==47)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="pending-47-deal" onclick="startEdit(&#39;pending-47-deal&#39;)" style="color:#94a3b8">🏙️ Shreveport Lease</span></td><td><span class="editable" data-cell="pending-47-action" onclick="startEdit(&#39;pending-47-action&#39;)" style="color:#e5e5e5">Rep agreement in review — follow up to execute</span></td><td class="comm"><span class="editable" data-cell="pending-47-comm" onclick="startEdit(&#39;pending-47-comm&#39;)" style="color:#4ade80">$15,795</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;pending&#39;].rows.find(x=&gt;x.id===47);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="pending-47-flag" onclick="startEdit(&#39;pending-47-flag&#39;)" style="color:#f87171">📋</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;pending&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;pending&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;pending&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;pending&#39;].rows=s.sections[&#39;pending&#39;].rows.filter(r=&gt;r.id!==29)})">✕</button></td>
+    <td style="color:#555;font-size:13px">3</td><td><span class="editable" data-cell="pending-29-deal" onclick="startEdit(&#39;pending-29-deal&#39;)" style="color:#94a3b8">🛤️ Katie Avant — 10993 N. Harrell's Ferry</span></td><td><span class="editable" data-cell="pending-29-action" onclick="startEdit(&#39;pending-29-action&#39;)" style="color:#e5e5e5">Call re: valuation &amp; listing proposal</span></td><td class="comm"><span class="editable" data-cell="pending-29-comm" onclick="startEdit(&#39;pending-29-comm&#39;)" style="color:#4ade80">$5,063</span></td><td><select class="ball-select" onchange="upd(s=&gt;{const r=s.sections[&#39;pending&#39;].rows.find(x=&gt;x.id===29);if(r)r.ball=this.value})">
+      <option value="me" selected="">🟢 Me</option>
+      <option value="them">🔴 Them</option>
+      <option value="other">🟡 Other</option>
+    </select></td><td class="flag-cell"><span class="editable" data-cell="pending-29-flag" onclick="startEdit(&#39;pending-29-flag&#39;)" style="color:#f87171">📞</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#94a3b8;border:1px solid #94a3b8" onclick="openAddModal(&#39;pending&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;offbook&#39;)">
+      <span class="section-label" style="color:#f0abfc">🟣 OFF BOOK / PERSONAL PROPERTY</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Item</th><th>Action</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;offbook&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;offbook&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;offbook&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;offbook&#39;].rows=s.sections[&#39;offbook&#39;].rows.filter(r=&gt;r.id!==30)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="offbook-30-item" onclick="startEdit(&#39;offbook-30-item&#39;)" style="color:#f0abfc">🏀 Reconcile Basketball Expenses</span></td><td><span class="editable" data-cell="offbook-30-action" onclick="startEdit(&#39;offbook-30-action&#39;)" style="color:#e5e5e5">Reschedule w/ Seth Irby</span></td><td class="flag-cell"><span class="editable" data-cell="offbook-30-flag" onclick="startEdit(&#39;offbook-30-flag&#39;)" style="color:#f87171">🔄</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;offbook&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;offbook&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;offbook&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;offbook&#39;].rows=s.sections[&#39;offbook&#39;].rows.filter(r=&gt;r.id!==31)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="offbook-31-item" onclick="startEdit(&#39;offbook-31-item&#39;)" style="color:#f0abfc">🚗 AWC Personal Property</span></td><td><span class="editable" data-cell="offbook-31-action" onclick="startEdit(&#39;offbook-31-action&#39;)" style="color:#e5e5e5">Tim Hurless — Waiting on His Response</span></td><td class="flag-cell"><span class="editable" data-cell="offbook-31-flag" onclick="startEdit(&#39;offbook-31-flag&#39;)" style="color:#f87171">📞</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;offbook&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;offbook&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;offbook&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;offbook&#39;].rows=s.sections[&#39;offbook&#39;].rows.filter(r=&gt;r.id!==32)})">✕</button></td>
+    <td style="color:#555;font-size:13px">3</td><td><span class="editable" data-cell="offbook-32-item" onclick="startEdit(&#39;offbook-32-item&#39;)" style="color:#f0abfc">🏗️ University Pals — Site Plan / COX Utility</span></td><td><span class="editable" data-cell="offbook-32-action" onclick="startEdit(&#39;offbook-32-action&#39;)" style="color:#e5e5e5">Schedule meeting by 3/11</span></td><td class="flag-cell"><span class="editable" data-cell="offbook-32-flag" onclick="startEdit(&#39;offbook-32-flag&#39;)" style="color:#f87171">⚠️ 3/11</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#f0abfc;border:1px solid #f0abfc" onclick="openAddModal(&#39;offbook&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;personal&#39;)">
+      <span class="section-label" style="color:#f87171">🔴 PERSONAL — URGENT</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Item</th><th>Action</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==33)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="personal-33-item" onclick="startEdit(&#39;personal-33-item&#39;)" style="color:#f87171">🏦 Balance Bank Accounts</span></td><td><span class="editable" data-cell="personal-33-action" onclick="startEdit(&#39;personal-33-action&#39;)" style="color:#e5e5e5">Reconcile</span></td><td class="flag-cell"><span class="editable" data-cell="personal-33-flag" onclick="startEdit(&#39;personal-33-flag&#39;)" style="color:#f87171">⚡ ASAP</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==34)})">✕</button></td>
+    <td style="color:#555;font-size:13px">2</td><td><span class="editable" data-cell="personal-34-item" onclick="startEdit(&#39;personal-34-item&#39;)" style="color:#f87171">👩 Owe Mom — LSU Tickets</span></td><td><span class="editable" data-cell="personal-34-action" onclick="startEdit(&#39;personal-34-action&#39;)" style="color:#e5e5e5">Pay $3,556.25</span></td><td class="flag-cell"><span class="editable" data-cell="personal-34-flag" onclick="startEdit(&#39;personal-34-flag&#39;)" style="color:#f87171">💸 ASAP</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==35)})">✕</button></td>
+    <td style="color:#555;font-size:13px">3</td><td><span class="editable" data-cell="personal-35-item" onclick="startEdit(&#39;personal-35-item&#39;)" style="color:#f87171">👨 Owe Dad — BRCC</span></td><td><span class="editable" data-cell="personal-35-action" onclick="startEdit(&#39;personal-35-action&#39;)" style="color:#e5e5e5">Pay $200</span></td><td class="flag-cell"><span class="editable" data-cell="personal-35-flag" onclick="startEdit(&#39;personal-35-flag&#39;)" style="color:#f87171">💸 ASAP</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,3,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,3,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,3,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==36)})">✕</button></td>
+    <td style="color:#555;font-size:13px">4</td><td><span class="editable" data-cell="personal-36-item" onclick="startEdit(&#39;personal-36-item&#39;)" style="color:#f87171">🔧 Pay Mike Thibodeaux</span></td><td><span class="editable" data-cell="personal-36-action" onclick="startEdit(&#39;personal-36-action&#39;)" style="color:#e5e5e5">Owe for plumbing work already completed</span></td><td class="flag-cell"><span class="editable" data-cell="personal-36-flag" onclick="startEdit(&#39;personal-36-flag&#39;)" style="color:#f87171">💸 ASAP</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,4,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,4,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,4,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==37)})">✕</button></td>
+    <td style="color:#555;font-size:13px">5</td><td><span class="editable" data-cell="personal-37-item" onclick="startEdit(&#39;personal-37-item&#39;)" style="color:#f87171">🚰 Under Kitchen Sink Hot Water Heater</span></td><td><span class="editable" data-cell="personal-37-action" onclick="startEdit(&#39;personal-37-action&#39;)" style="color:#e5e5e5">Schedule with Mike T (future work)</span></td><td class="flag-cell"><span class="editable" data-cell="personal-37-flag" onclick="startEdit(&#39;personal-37-flag&#39;)" style="color:#f87171">🔧</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,5,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,5,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,5,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==38)})">✕</button></td>
+    <td style="color:#555;font-size:13px">6</td><td><span class="editable" data-cell="personal-38-item" onclick="startEdit(&#39;personal-38-item&#39;)" style="color:#f87171">🎁 Wrap Claire Anniversary Present</span></td><td><span class="editable" data-cell="personal-38-action" onclick="startEdit(&#39;personal-38-action&#39;)" style="color:#e5e5e5">Must happen during day 3/11</span></td><td class="flag-cell"><span class="editable" data-cell="personal-38-flag" onclick="startEdit(&#39;personal-38-flag&#39;)" style="color:#f87171">🎀 3/11</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,6,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,6,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,6,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==39)})">✕</button></td>
+    <td style="color:#555;font-size:13px">7</td><td><span class="editable" data-cell="personal-39-item" onclick="startEdit(&#39;personal-39-item&#39;)" style="color:#f87171">🔩 Get fan screw replaced — Clark's fan</span></td><td><span class="editable" data-cell="personal-39-action" onclick="startEdit(&#39;personal-39-action&#39;)" style="color:#e5e5e5">Schedule repair</span></td><td class="flag-cell"><span class="editable" data-cell="personal-39-flag" onclick="startEdit(&#39;personal-39-flag&#39;)" style="color:#f87171">🔧</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,7,&#39;section&#39;,&#39;personal&#39;)" ondragover="onDragOver(event,7,&#39;section&#39;,&#39;personal&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,7,&#39;section&#39;,&#39;personal&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;personal&#39;].rows=s.sections[&#39;personal&#39;].rows.filter(r=&gt;r.id!==40)})">✕</button></td>
+    <td style="color:#555;font-size:13px">8</td><td><span class="editable" data-cell="personal-40-item" onclick="startEdit(&#39;personal-40-item&#39;)" style="color:#f87171">🌬️ Pay Lyndon</span></td><td><span class="editable" data-cell="personal-40-action" onclick="startEdit(&#39;personal-40-action&#39;)" style="color:#e5e5e5">Pay for HVAC return install</span></td><td class="flag-cell"><span class="editable" data-cell="personal-40-flag" onclick="startEdit(&#39;personal-40-flag&#39;)" style="color:#f87171">💸</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#f87171;border:1px solid #f87171" onclick="openAddModal(&#39;personal&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;farm&#39;)">
+      <span class="section-label" style="color:#86efac">🌱 FARM</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>#</th><th>Person</th><th>Deal</th><th>Notes</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;farm&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;farm&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;farm&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;farm&#39;].rows=s.sections[&#39;farm&#39;].rows.filter(r=&gt;r.id!==41)})">✕</button></td>
+    <td style="color:#555;font-size:13px">1</td><td><span class="editable" data-cell="farm-41-person" onclick="startEdit(&#39;farm-41-person&#39;)" style="color:#86efac">🌾 Edward Rotenberg</span></td><td><span class="editable" data-cell="farm-41-deal" onclick="startEdit(&#39;farm-41-deal&#39;)" style="color:#86efac">Starcon — Ashland Rd</span></td><td><span class="editable" data-cell="farm-41-notes" onclick="startEdit(&#39;farm-41-notes&#39;)" style="color:#e5e5e5">Tenant notice completed</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#86efac;border:1px solid #86efac" onclick="openAddModal(&#39;farm&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div><div class="section">
+    <div class="section-header" onclick="toggleSection(&#39;schedule&#39;)">
+      <span class="section-label" style="color:#67e8f9">📅 UPCOMING SCHEDULE</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        
+        <span class="chevron">▼</span>
+      </div>
+    </div>
+    <div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            <th>Date</th><th>Day</th><th>Time</th><th>Event</th><th>Flag</th>
+          </tr></thead>
+          <tbody>
+            <tr draggable="true" ondragstart="onDragStart(event,0,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,0,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,0,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==101)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-101-date" onclick="startEdit(&#39;schedule-101-date&#39;)" style="color:#e5e5e5">3/11</span></td><td><span class="editable" data-cell="schedule-101-day" onclick="startEdit(&#39;schedule-101-day&#39;)" style="color:#e5e5e5">Tue</span></td><td><span class="editable" data-cell="schedule-101-time" onclick="startEdit(&#39;schedule-101-time&#39;)" style="color:#e5e5e5">8:30 AM</span></td><td><span class="editable" data-cell="schedule-101-event" onclick="startEdit(&#39;schedule-101-event&#39;)" style="color:#e5e5e5">📝 Jan Frey PSA Execution</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-101-flag" onclick="startEdit(&#39;schedule-101-flag&#39;)" style="color:#f87171">📝</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,1,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,1,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,1,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==102)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-102-date" onclick="startEdit(&#39;schedule-102-date&#39;)" style="color:#e5e5e5">3/11</span></td><td><span class="editable" data-cell="schedule-102-day" onclick="startEdit(&#39;schedule-102-day&#39;)" style="color:#e5e5e5">Tue</span></td><td><span class="editable" data-cell="schedule-102-time" onclick="startEdit(&#39;schedule-102-time&#39;)" style="color:#e5e5e5">10:00 AM</span></td><td><span class="editable" data-cell="schedule-102-event" onclick="startEdit(&#39;schedule-102-event&#39;)" style="color:#e5e5e5">📋 LACDB Board Meeting</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-102-flag" onclick="startEdit(&#39;schedule-102-flag&#39;)" style="color:#f87171">📋</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,2,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,2,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,2,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==103)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-103-date" onclick="startEdit(&#39;schedule-103-date&#39;)" style="color:#e5e5e5">3/11</span></td><td><span class="editable" data-cell="schedule-103-day" onclick="startEdit(&#39;schedule-103-day&#39;)" style="color:#e5e5e5">Tue</span></td><td><span class="editable" data-cell="schedule-103-time" onclick="startEdit(&#39;schedule-103-time&#39;)" style="color:#e5e5e5">2:00 PM</span></td><td><span class="editable" data-cell="schedule-103-event" onclick="startEdit(&#39;schedule-103-event&#39;)" style="color:#e5e5e5">🏠 Anne Underwood @ Edinburgh</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-103-flag" onclick="startEdit(&#39;schedule-103-flag&#39;)" style="color:#f87171">🏠</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,3,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,3,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,3,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==104)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-104-date" onclick="startEdit(&#39;schedule-104-date&#39;)" style="color:#e5e5e5">3/11</span></td><td><span class="editable" data-cell="schedule-104-day" onclick="startEdit(&#39;schedule-104-day&#39;)" style="color:#e5e5e5">Tue</span></td><td><span class="editable" data-cell="schedule-104-time" onclick="startEdit(&#39;schedule-104-time&#39;)" style="color:#e5e5e5">—</span></td><td><span class="editable" data-cell="schedule-104-event" onclick="startEdit(&#39;schedule-104-event&#39;)" style="color:#e5e5e5">⚠️ University Pals Meeting Deadline</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-104-flag" onclick="startEdit(&#39;schedule-104-flag&#39;)" style="color:#f87171">⚠️</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,4,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,4,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,4,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==105)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-105-date" onclick="startEdit(&#39;schedule-105-date&#39;)" style="color:#e5e5e5">3/12</span></td><td><span class="editable" data-cell="schedule-105-day" onclick="startEdit(&#39;schedule-105-day&#39;)" style="color:#e5e5e5">Wed</span></td><td><span class="editable" data-cell="schedule-105-time" onclick="startEdit(&#39;schedule-105-time&#39;)" style="color:#e5e5e5">4:00 PM</span></td><td><span class="editable" data-cell="schedule-105-event" onclick="startEdit(&#39;schedule-105-event&#39;)" style="color:#e5e5e5">🍻 Trends Happy Hour — Building 5</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-105-flag" onclick="startEdit(&#39;schedule-105-flag&#39;)" style="color:#f87171">🍻</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,5,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,5,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,5,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==106)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-106-date" onclick="startEdit(&#39;schedule-106-date&#39;)" style="color:#e5e5e5">3/12</span></td><td><span class="editable" data-cell="schedule-106-day" onclick="startEdit(&#39;schedule-106-day&#39;)" style="color:#e5e5e5">Wed</span></td><td><span class="editable" data-cell="schedule-106-time" onclick="startEdit(&#39;schedule-106-time&#39;)" style="color:#e5e5e5">6:00 PM</span></td><td><span class="editable" data-cell="schedule-106-event" onclick="startEdit(&#39;schedule-106-event&#39;)" style="color:#e5e5e5">⚾ Uhigh Baseball Game — 1st Pitch</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-106-flag" onclick="startEdit(&#39;schedule-106-flag&#39;)" style="color:#f87171">⚾</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,6,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,6,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,6,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==107)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-107-date" onclick="startEdit(&#39;schedule-107-date&#39;)" style="color:#e5e5e5">3/13</span></td><td><span class="editable" data-cell="schedule-107-day" onclick="startEdit(&#39;schedule-107-day&#39;)" style="color:#e5e5e5">Thu</span></td><td><span class="editable" data-cell="schedule-107-time" onclick="startEdit(&#39;schedule-107-time&#39;)" style="color:#e5e5e5">—</span></td><td><span class="editable" data-cell="schedule-107-event" onclick="startEdit(&#39;schedule-107-event&#39;)" style="color:#e5e5e5">🏫 No School — Uhigh</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-107-flag" onclick="startEdit(&#39;schedule-107-flag&#39;)" style="color:#f87171">🏫</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,7,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,7,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,7,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==108)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-108-date" onclick="startEdit(&#39;schedule-108-date&#39;)" style="color:#e5e5e5">3/14</span></td><td><span class="editable" data-cell="schedule-108-day" onclick="startEdit(&#39;schedule-108-day&#39;)" style="color:#e5e5e5">Fri</span></td><td><span class="editable" data-cell="schedule-108-time" onclick="startEdit(&#39;schedule-108-time&#39;)" style="color:#e5e5e5">—</span></td><td><span class="editable" data-cell="schedule-108-event" onclick="startEdit(&#39;schedule-108-event&#39;)" style="color:#e5e5e5">🍀 St. Patty's Day Parade</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-108-flag" onclick="startEdit(&#39;schedule-108-flag&#39;)" style="color:#f87171">🍀</span></td>
+  </tr><tr draggable="true" ondragstart="onDragStart(event,8,&#39;section&#39;,&#39;schedule&#39;)" ondragover="onDragOver(event,8,&#39;section&#39;,&#39;schedule&#39;)" ondragleave="onDragLeave(event)" ondrop="onDrop(event,8,&#39;section&#39;,&#39;schedule&#39;)">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=&gt;{s.sections[&#39;schedule&#39;].rows=s.sections[&#39;schedule&#39;].rows.filter(r=&gt;r.id!==109)})">✕</button></td>
+    <td><span class="editable" data-cell="schedule-109-date" onclick="startEdit(&#39;schedule-109-date&#39;)" style="color:#e5e5e5">4/2–4/7</span></td><td><span class="editable" data-cell="schedule-109-day" onclick="startEdit(&#39;schedule-109-day&#39;)" style="color:#e5e5e5">—</span></td><td><span class="editable" data-cell="schedule-109-time" onclick="startEdit(&#39;schedule-109-time&#39;)" style="color:#e5e5e5">—</span></td><td><span class="editable" data-cell="schedule-109-event" onclick="startEdit(&#39;schedule-109-event&#39;)" style="color:#e5e5e5">✈️ London Trip</span></td><td class="flag-cell"><span class="editable" data-cell="schedule-109-flag" onclick="startEdit(&#39;schedule-109-flag&#39;)" style="color:#f87171">✈️</span></td>
+  </tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:#67e8f9;border:1px solid #67e8f9" onclick="openAddModal(&#39;schedule&#39;)">➕ Add Row</button>
+      </div>
+    </div>
+  </div>
+    <div class="pipeline">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="color:#fbbf24">💼 PIPELINE SNAPSHOT</div>
+    </div>
+    
+      <div class="pipeline-row">
+        <span style="color:#aaa">💰 Collectible Now</span>
+        <span style="color:#ef4444;font-weight:700;font-size:13px">~$61,600</span>
+      </div>
+    
+      <div class="pipeline-row">
+        <span style="color:#aaa">📊 Pending/In Progress</span>
+        <span style="color:#f97316;font-weight:700;font-size:13px">~$267,996</span>
+      </div>
+    
+      <div class="pipeline-row">
+        <span style="color:#aaa">🌱 Long-term Farm</span>
+        <span style="color:#86efac;font-weight:700;font-size:13px">$200,000</span>
+      </div>
+    
+      <div class="pipeline-row">
+        <span style="color:#aaa">📣 Activation Needed</span>
+        <span style="color:#a78bfa;font-weight:700;font-size:13px">$300,000</span>
+      </div>
+    
+      <div class="pipeline-row">
+        <span style="color:#aaa">🏆 Total Pipeline</span>
+        <span style="color:#fbbf24;font-weight:800;font-size:16px">~$829,596</span>
+      </div>
+    
+  </div>
+    
+    <div class="footer">🎖️ THE WAR ROOM &nbsp;|&nbsp; Big Matt &nbsp;|&nbsp; 3/11/26</div>
+    
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://mtkyyaorvensylrfbhxv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_qGuGE-6ExwYvFC01eBvV_g_ewDYx77M';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const EMOJIS = ['🚨','🔥','👑','💰','⚡','📋','📞','📧','⏳','✅','❓','📝','🔄','📣','📊','⚖️','🏆','💸','⚠️','🎯'];
+
+// ── DEFAULT DATA ─────────────────────────────────────────────────────────────
+const DEFAULT = {
+  lastUpdated: "3/11/26",
+  top3: [
+    { flag:"🚨", deal:"Melissa Stockstill — LA Blue (Separate Deal)", why:"HARD DEADLINE — call TODAY 3/11. She departs 3/13. Do not miss this window.", comm:"TBD" },
+    { flag:"🔥", deal:"Wicker Park — Hobby Lobby Center", why:"$200k commission. Get the answer. Biggest single move you can make this week.", comm:"$200,000" },
+    { flag:"👑", deal:"Hank Saurage — Plaquemine PSA", why:"Ball is YOUR COURT. Review buyer PSA comments and respond. EHVP — always first.", comm:"$14,063" },
+  ],
+  battlePlan: [
+    { id:1, done:false, action:"🚨 Call Melissa Stockstill — LA Blue (separate deal) — DEPARTS 3/13", flag:"🚨 HARD DEADLINE", ball:"me" },
+    { id:2, done:false, action:"⚖️ Finalize Lease for Signature — Art / Call Daniel, Etc.", flag:"🔥 PRIORITY", ball:"me" },
+    { id:3, done:false, action:"🔥 GVI Dutch Bros — File Executed PSA", flag:"📝 ACTION", ball:"me" },
+    { id:4, done:false, action:"Get Jan Frey Signature on PSA — 8:30 AM", flag:"⏰ 8:30 AM", ball:"me" },
+    { id:5, done:false, action:"🚨 Get Official Response LA Blue on Jessie Babcock — Production Building Monroe", flag:"🚨 URGENT", ball:"me" },
+    { id:6, done:false, action:"VALS — Call Red Robinson: Rough In Electrical Inspection", flag:"🔧", ball:"me" },
+    { id:7, done:false, action:"VALS — Framing Inspection", flag:"🔧", ball:"me" },
+    { id:8, done:false, action:"VALS — Send Leslie Newman DocuSign", flag:"📤", ball:"me" },
+    { id:9, done:false, action:"Call Sean McLaurin — RaceTrac", flag:"📞", ball:"me" },
+    { id:10, done:false, action:"Get Parking Figures Back to LA Blue", flag:"📋", ball:"me" },
+    { id:11, done:false, action:"AWC — Ball in Broker's Court (Tim Hurless)", flag:"👀 THEIR COURT", ball:"them" },
+  ],
+  timeBlocks: [
+    { id:1, time:"8:30 AM", event:"Jan Frey PSA Execution", flag:"📝" },
+    { id:2, time:"10:00 AM", event:"📋 LACDB Board Meeting", flag:"📋" },
+    { id:3, time:"2:00 PM", event:"🏠 Anne Underwood @ Edinburgh", flag:"🏠" },
+  ],
+  sections: {
+    ehvp: {
+      label:"👑 EHVP — ALWAYS FIRST", color:"#f59e0b", total:"$14,063+",
+      columns:["#","Person","Deal","Action","Comm","Ball","Flag"],
+      rows:[
+        { id:9, person:"👑 Hank Saurage", deal:"Plaquemine PSA", action:"Review Buyer PSA Comments & Respond", comm:"$14,063", ball:"me", flag:"⚖️ MY COURT" },
+        { id:10, person:"👑 Edward Rotenberg", deal:"2831 Darla Ave", action:"Punch List — Remaining Work", comm:"TBD", ball:"them", flag:"👀" },
+      ]
+    },
+    collect: {
+      label:"🚨 COLLECT NOW — CASH IN HAND", color:"#f87171", total:"$61,600",
+      columns:["#","Deal","Action","Comm","Ball","Flag"],
+      rows:[
+        { id:11, deal:"💰 LA Blue Lease — Worley Inc.", action:"$30k due NOW", comm:"$60,000", ball:"them", flag:"🚨" },
+        { id:12, deal:"💰 619 Jefferson — Bob Belk ⭐ HVP", action:"Lease closed — collect", comm:"$1,600", ball:"them", flag:"🚨" },
+      ]
+    },
+    active: {
+      label:"🔥 ACTIVE DEALS — HIGHEST COMMISSION", color:"#fdba74", total:"$479,500+",
+      columns:["#","Deal","Action","Comm","Ball","Flag"],
+      rows:[
+        { id:42, deal:"🚨 Melissa Stockstill — LA Blue (Separate Deal)", action:"CALL TODAY 3/11 — Departs company 3/13. Hard deadline.", comm:"TBD", ball:"me", flag:"🚨 3/11 DEADLINE" },
+        { id:13, deal:"📣 LA Blue Monroe Portfolio", action:"Activate all platforms / Get with Ashley", comm:"$300,000", ball:"me", flag:"🔥" },
+        { id:14, deal:"🚗 RaceTrac Land Acquisition", action:"Awaiting DOTD Approval", comm:"$48,000", ball:"them", flag:"⏳" },
+        { id:15, deal:"🏢 1301 Hudson Lane — Monroe", action:"Offering memo delivered — Push Sam for next action", comm:"$31,500", ball:"them", flag:"📋" },
+        { id:16, deal:"🛋️ Ashley Furniture Portfolio", action:"Kimberly Boger — Get new DSG Contact", comm:"$50,000", ball:"me", flag:"📞" },
+        { id:17, deal:"☕ Ashley Furniture — Dutch Brothers Outparcel", action:"Work deal", comm:"$16,000", ball:"me", flag:"🔄" },
+        { id:18, deal:"🏠 619 Jefferson — Bob Belk ⭐ HVP SALE", action:"Review Financials", comm:"$18,000", ball:"me", flag:"📊" },
+        { id:19, deal:"🤠 Steve — Denham / 51494 La Hwy 16", action:"Listing pitch", comm:"TBD", ball:"me", flag:"📣" },
+      ]
+    },
+    hvp: {
+      label:"⭐ HVP DEALS", color:"#c4b5fd", total:"$250,400+",
+      columns:["#","Person","Deal","Action","Comm","Ball","Flag"],
+      rows:[
+        { id:20, person:"🔔 Phil Moody", deal:"Tenant in default", action:"🚨 Return Ben Stalter call — Valuation/Pricing Guidance", comm:"TBD", ball:"me", flag:"🚨" },
+        { id:21, person:"🌬️ Windy Gladney", deal:"$3M listing", action:"Discuss City of St. George email", comm:"$33,750", ball:"me", flag:"📧" },
+        { id:22, person:"🏬 Wicker Park", deal:"Hobby Lobby Center", action:"Get answer on Hobby Lobby Center", comm:"$200,000", ball:"me", flag:"❓" },
+        { id:23, person:"🍕 Matthew Kohnke", deal:"Val's Restaurant — ABC Permit", action:"Docs needed from Katherine — MK & LN schedule fingerprint", comm:"TBD", ball:"me", flag:"🔥" },
+        { id:24, person:"🏛️ Daniel L.", deal:"Government Village I", action:"PSA Negotiations", comm:"$16,650", ball:"me", flag:"📝" },
+        { id:43, person:"🏬 Wicker Park", deal:"University View", action:"Get parking size for repair", comm:"TBD", ball:"me", flag:"🔧" },
+        { id:44, person:"🏬 Wicker Park / Crawford Square", deal:"Property Inspection", action:"Return call — property inspection", comm:"TBD", ball:"me", flag:"📞" },
+      ]
+    },
+    contract: {
+      label:"📝 UNDER CONTRACT", color:"#6ee7b7", total:"$38,287",
+      columns:["#","Deal","Status","Comm","Ball","Timeline","Flag"],
+      rows:[
+        { id:25, deal:"🛣️ Scenic Hwy — Burnhams", status:"🟢 In Closing Period — closes by 5/8/26", comm:"$8,437", ball:"other", flag:"📅", timeline:"60 days" },
+        { id:45, deal:"☕ GVI — Dutch Brothers", status:"🟢 Under Contract — Need Pertinent Dates, Deposit & Deliver DD Material", comm:"$16,650", ball:"me", flag:"🔥", timeline:"TBD" },
+        { id:46, deal:"🏢 Donnie Braud — 4950 Government St", status:"🟢 Under Contract — Need Pertinent Dates, Deposit & Deliver DD Material", comm:"$13,200", ball:"me", flag:"📋", timeline:"TBD" },
+      ]
+    },
+    pitch: {
+      label:"📅 UPCOMING PITCH / LISTING", color:"#7dd3fc", total:"$10,125",
+      columns:["#","Deal","Action","Comm","Ball","Flag"],
+      rows:[
+        { id:26, deal:"🍱 BR Food Bank", action:"Get listing agreement signed — DocuSign in food bank's court", comm:"$10,125", ball:"them", flag:"📤 THEIR COURT" },
+      ]
+    },
+    pending: {
+      label:"🔄 PENDING / ACTION NEEDED", color:"#94a3b8", total:"$20,858+",
+      columns:["#","Deal","Action","Comm","Ball","Flag"],
+      rows:[
+        { id:27, deal:"🏡 Debbie Geurin — Bluebonnet", action:"Brooks T. to call Debbie re: showing", comm:"TBD", ball:"other", flag:"👀" },
+        { id:47, deal:"🏙️ Shreveport Lease", action:"Rep agreement in review — follow up to execute", comm:"$15,795", ball:"me", flag:"📋" },
+        { id:29, deal:"🛤️ Katie Avant — 10993 N. Harrell's Ferry", action:"Call re: valuation & listing proposal", comm:"$5,063", ball:"me", flag:"📞" },
+      ]
+    },
+    offbook: {
+      label:"🟣 OFF BOOK / PERSONAL PROPERTY", color:"#f0abfc", total:"",
+      columns:["#","Item","Action","Flag"],
+      rows:[
+        { id:30, item:"🏀 Reconcile Basketball Expenses", action:"Reschedule w/ Seth Irby", flag:"🔄" },
+        { id:31, item:"🚗 AWC Personal Property", action:"Tim Hurless — Waiting on His Response", flag:"📞" },
+        { id:32, item:"🏗️ University Pals — Site Plan / COX Utility", action:"Schedule meeting by 3/11", flag:"⚠️ 3/11" },
+      ]
+    },
+    personal: {
+      label:"🔴 PERSONAL — URGENT", color:"#f87171", total:"",
+      columns:["#","Item","Action","Flag"],
+      rows:[
+        { id:33, item:"🏦 Balance Bank Accounts", action:"Reconcile", flag:"⚡ ASAP" },
+        { id:34, item:"👩 Owe Mom — LSU Tickets", action:"Pay $3,556.25", flag:"💸 ASAP" },
+        { id:35, item:"👨 Owe Dad — BRCC", action:"Pay $200", flag:"💸 ASAP" },
+        { id:36, item:"🔧 Pay Mike Thibodeaux", action:"Owe for plumbing work already completed", flag:"💸 ASAP" },
+        { id:37, item:"🚰 Under Kitchen Sink Hot Water Heater", action:"Schedule with Mike T (future work)", flag:"🔧" },
+        { id:38, item:"🎁 Wrap Claire Anniversary Present", action:"Must happen during day 3/11", flag:"🎀 3/11" },
+        { id:39, item:"🔩 Get fan screw replaced — Clark's fan", action:"Schedule repair", flag:"🔧" },
+        { id:40, item:"🌬️ Pay Lyndon", action:"Pay for HVAC return install", flag:"💸" },
+      ]
+    },
+    farm: {
+      label:"🌱 FARM", color:"#86efac", total:"",
+      columns:["#","Person","Deal","Notes"],
+      rows:[
+        { id:41, person:"🌾 Edward Rotenberg", deal:"Starcon — Ashland Rd", notes:"Tenant notice completed" },
+      ]
+    },
+    schedule: {
+      label:"📅 UPCOMING SCHEDULE", color:"#67e8f9", total:"",
+      columns:["Date","Day","Time","Event","Flag"],
+      rows:[
+        { id:101, date:"3/11", day:"Tue", time:"8:30 AM", event:"📝 Jan Frey PSA Execution", flag:"📝" },
+        { id:102, date:"3/11", day:"Tue", time:"10:00 AM", event:"📋 LACDB Board Meeting", flag:"📋" },
+        { id:103, date:"3/11", day:"Tue", time:"2:00 PM", event:"🏠 Anne Underwood @ Edinburgh", flag:"🏠" },
+        { id:104, date:"3/11", day:"Tue", time:"—", event:"⚠️ University Pals Meeting Deadline", flag:"⚠️" },
+        { id:105, date:"3/12", day:"Wed", time:"4:00 PM", event:"🍻 Trends Happy Hour — Building 5", flag:"🍻" },
+        { id:106, date:"3/12", day:"Wed", time:"6:00 PM", event:"⚾ Uhigh Baseball Game — 1st Pitch", flag:"⚾" },
+        { id:107, date:"3/13", day:"Thu", time:"—", event:"🏫 No School — Uhigh", flag:"🏫" },
+        { id:108, date:"3/14", day:"Fri", time:"—", event:"🍀 St. Patty's Day Parade", flag:"🍀" },
+        { id:109, date:"4/2–4/7", day:"—", time:"—", event:"✈️ London Trip", flag:"✈️" },
+      ]
+    },
+  },
+  pipeline: {
+    collectible:"~$61,600",
+    pending:"~$267,996",
+    farm:"$200,000",
+    activation:"$300,000",
+    total:"~$829,596"
+  }
+};
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let state = JSON.parse(JSON.stringify(DEFAULT));
+let collapsed = {};
+let winLog = [];
+let syncStatus = 'ok';
+let saveTimer = null;
+let openEmojiPicker = null;
+
+// ── SUPABASE ─────────────────────────────────────────────────────────────────
+async function loadFromCloud() {
+  try {
+    const { data, error } = await sb.from('warroom').select('*').eq('id', 'bigmatt').single();
+    if (error && error.code !== 'PGRST116') throw error;
+    if (data && data.payload) {
+      state = data.payload;
+      setSyncStatus('ok');
+    } else {
+      await saveToCloud();
+    }
+  } catch(e) {
+    console.warn('Cloud load failed, using defaults', e);
+    setSyncStatus('err');
+  }
+  render();
+}
+
+async function saveToCloud() {
+  setSyncStatus('saving');
+  try {
+    const { error } = await sb.from('warroom').upsert({ id: 'bigmatt', payload: state, updated_at: new Date().toISOString() });
+    if (error) throw error;
+    setSyncStatus('ok');
+  } catch(e) {
+    console.error('Save failed', e);
+    setSyncStatus('err');
+  }
+}
+
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveToCloud, 1200);
+}
+
+function forceSave() { saveToCloud(); }
+
+function setSyncStatus(s) {
+  syncStatus = s;
+  const el = document.getElementById('sync-status');
+  if (!el) return;
+  el.className = 'sync ' + s;
+  el.textContent = s === 'ok' ? '● Live' : s === 'saving' ? '⟳ Saving…' : '✕ Offline';
+}
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function uid() { return Date.now() + Math.floor(Math.random()*1000); }
+
+function upd(fn) {
+  fn(state);
+  render();
+  scheduleSave();
+}
+
+function ballClass(b) {
+  return b === 'me' ? 'ball-me' : b === 'them' ? 'ball-them' : 'ball-other';
+}
+function ballLabel(b) {
+  return b === 'me' ? '🟢 Me' : b === 'them' ? '🔴 Them' : '🟡 Other';
+}
+
+// ── DRAG & DROP (rows) ────────────────────────────────────────────────────────
+let dragSrc = null;
+let dragCtx = null; // { type: 'battle'|'section', key }
+
+function onDragStart(e, idx, type, key) {
+  dragSrc = idx;
+  dragCtx = { type, key };
+  e.dataTransfer.effectAllowed = 'move';
+}
+function onDragOver(e, idx, type, key) {
+  e.preventDefault();
+  if (dragCtx && dragCtx.type === type && dragCtx.key === key && dragSrc !== idx) {
+    e.currentTarget.classList.add('drag-over');
+  }
+}
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+function onDrop(e, idx, type, key) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  if (!dragCtx || dragCtx.type !== type || dragCtx.key !== key || dragSrc === idx) return;
+  upd(s => {
+    const arr = type === 'battle' ? s.battlePlan : s.sections[key].rows;
+    const [item] = arr.splice(dragSrc, 1);
+    arr.splice(idx, 0, item);
+  });
+  dragSrc = null;
+}
+
+// ── EMOJI PICKER ─────────────────────────────────────────────────────────────
+function renderEmojiPicker(currentVal, onSelect, pickerId) {
+  const isOpen = openEmojiPicker === pickerId;
+  return `<div class="emoji-picker-wrap">
+    <button class="emoji-picker-btn" onclick="toggleEmojiPicker('${pickerId}')">${currentVal || '➕'}</button>
+    ${isOpen ? `<div class="emoji-dropdown">${EMOJIS.map(e =>
+      `<div class="emoji-opt" onclick="selectEmoji('${pickerId}', '${e}')">${e}</div>`
+    ).join('')}</div>` : ''}
+  </div>`;
+}
+
+const emojiCallbacks = {};
+function toggleEmojiPicker(id) {
+  openEmojiPicker = openEmojiPicker === id ? null : id;
+  render();
+}
+function selectEmoji(id, emoji) {
+  openEmojiPicker = null;
+  if (emojiCallbacks[id]) emojiCallbacks[id](emoji);
+}
+
+// ── EDITABLE CELL ─────────────────────────────────────────────────────────────
+let editingCell = null;
+function startEdit(cellId) {
+  editingCell = cellId;
+  render();
+  setTimeout(() => {
+    const el = document.querySelector(`[data-cell="${cellId}"] input, [data-cell="${cellId}"] textarea`);
+    if (el) { el.focus(); el.select(); }
+  }, 0);
+}
+function commitEdit(cellId, val, saveFn) {
+  editingCell = null;
+  saveFn(val);
+}
+
+function editableCell(cellId, value, saveFn, colored, multiline) {
+  if (editingCell === cellId) {
+    const tag = multiline ? 'textarea' : 'input';
+    return `<span data-cell="${cellId}"><${tag} 
+      value="${(value||'').replace(/"/g,'&quot;')}"
+      onblur="commitEdit('${cellId}', this.value, eCbs['${cellId}'])"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){commitEdit('${cellId}', this.value, eCbs['${cellId}'])}"
+      style="color:${colored||'#e5e5e5'}"
+    >${multiline ? (value||'') : ''}</${tag}></span>`;
+  }
+  return `<span class="editable" data-cell="${cellId}" onclick="startEdit('${cellId}')" style="color:${colored||'#e5e5e5'}">${value || '<span style="color:#444;font-style:italic">—</span>'}</span>`;
+}
+
+const eCbs = {};
+
+// ── RENDER TOP 3 ─────────────────────────────────────────────────────────────
+function renderTop3() {
+  return `<div class="top3">
+    <div class="section-title" style="color:#f59e0b">🧠 THIS WEEK'S TOP 3 — HOT LEADS → CONTRACT</div>
+    ${state.top3.map((item,i) => `
+      <div class="top3-row">
+        <span class="top3-flag">${item.flag}</span>
+        <div style="flex:1">
+          <div class="top3-deal">${item.deal}</div>
+          <div class="top3-why">${item.why}</div>
+        </div>
+        <div class="top3-comm">${item.comm}</div>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// ── RENDER BATTLE PLAN ────────────────────────────────────────────────────────
+function renderBattle() {
+  return `<div class="battle">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="color:#60a5fa">🔥 TODAY'S BATTLE PLAN</div>
+      <button class="add-btn" style="color:#60a5fa;border:1px solid #60a5fa" onclick="addBattleRow()">➕ Add</button>
+    </div>
+    ${state.battlePlan.map((item,i) => {
+      const cid = `bp-${item.id}`;
+      eCbs[cid+'-action'] = v => upd(s => { const b = s.battlePlan.find(x=>x.id===item.id); if(b) b.action=v; });
+      eCbs[cid+'-flag'] = v => upd(s => { const b = s.battlePlan.find(x=>x.id===item.id); if(b) b.flag=v; });
+      return `<div class="battle-row ${item.done?'done':''}" draggable="true"
+        ondragstart="onDragStart(event,${i},'battle','battle')"
+        ondragover="onDragOver(event,${i},'battle','battle')"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,${i},'battle','battle')">
+        <span class="drag-handle">⠿</span>
+        <span class="check" onclick="toggleBattle(${item.id})">${item.done?'✅':'⬜'}</span>
+        <span class="battle-action" style="text-decoration:${item.done?'line-through':'none'}">
+          ${editableCell(cid+'-action', item.action, eCbs[cid+'-action'], '#e5e5e5', false)}
+        </span>
+        <span class="battle-flag">${editableCell(cid+'-flag', item.flag, eCbs[cid+'-flag'], '#f87171', false)}</span>
+        <select class="ball-select" onchange="upd(s=>{const b=s.battlePlan.find(x=>x.id===${item.id});if(b)b.ball=this.value})">
+          <option value="me" ${item.ball==='me'?'selected':''}>🟢 Me</option>
+          <option value="them" ${item.ball==='them'?'selected':''}>🔴 Them</option>
+          <option value="other" ${item.ball==='other'?'selected':''}>🟡 Other</option>
+        </select>
+        <button class="del-btn" onclick="upd(s=>{s.battlePlan=s.battlePlan.filter(x=>x.id!==${item.id})})">✕</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+function toggleBattle(id) {
+  const item = state.battlePlan.find(b=>b.id===id);
+  if (!item) return;
+  if (!item.done) winLog.push({ id, action: item.action });
+  else winLog = winLog.filter(x=>x.id!==id);
+  upd(s => { const b = s.battlePlan.find(x=>x.id===id); if(b) b.done = !b.done; });
+}
+
+function addBattleRow() {
+  upd(s => s.battlePlan.push({ id:uid(), done:false, action:"New item", flag:"", ball:"me" }));
+}
+
+// ── RENDER TIME BLOCKS ────────────────────────────────────────────────────────
+function renderTimeBlocks() {
+  return `<div class="timeblock">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="color:#a78bfa">⏰ TODAY'S TIME BLOCKS</div>
+      <button class="add-btn" style="color:#a78bfa;border:1px solid #a78bfa" onclick="upd(s=>s.timeBlocks.push({id:${uid()},time:'—',event:'New event',flag:''}))">➕ Add</button>
+    </div>
+    ${state.timeBlocks.map((t,i) => {
+      eCbs[`tb-${t.id}-time`] = v => upd(s=>{const x=s.timeBlocks.find(x=>x.id===t.id);if(x)x.time=v;});
+      eCbs[`tb-${t.id}-event`] = v => upd(s=>{const x=s.timeBlocks.find(x=>x.id===t.id);if(x)x.event=v;});
+      eCbs[`tb-${t.id}-flag`] = v => upd(s=>{const x=s.timeBlocks.find(x=>x.id===t.id);if(x)x.flag=v;});
+      return `<div class="time-row">
+        <span class="time-label">${editableCell(`tb-${t.id}-time`,t.time,eCbs[`tb-${t.id}-time`],'#a78bfa')}</span>
+        <span style="flex:1;font-size:13px">${editableCell(`tb-${t.id}-event`,t.event,eCbs[`tb-${t.id}-event`],'#e5e5e5')}</span>
+        <span style="color:#f87171;font-size:11px">${editableCell(`tb-${t.id}-flag`,t.flag,eCbs[`tb-${t.id}-flag`],'#f87171')}</span>
+        <button class="del-btn" onclick="upd(s=>{s.timeBlocks=s.timeBlocks.filter(x=>x.id!==${t.id})})">✕</button>
+      </div>`;
+    }).join('')}
+  </div>`;
+}
+
+// ── RENDER SECTION ────────────────────────────────────────────────────────────
+function renderSection(key) {
+  const sec = state.sections[key];
+  const open = !collapsed[key];
+  return `<div class="section">
+    <div class="section-header" onclick="toggleSection('${key}')">
+      <span class="section-label" style="color:${sec.color}">${sec.label}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        ${sec.total ? `<span class="section-total">${sec.total}</span>` : ''}
+        <span class="chevron">${open?'▼':'▶'}</span>
+      </div>
+    </div>
+    ${open ? `<div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr>
+            <th class="drag-col"></th>
+            <th class="del-col">✕</th>
+            ${sec.columns.map(c=>`<th>${c}</th>`).join('')}
+          </tr></thead>
+          <tbody>
+            ${sec.rows.map((row,i) => renderRow(key, row, i, sec)).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div style="margin-top:6px;padding-left:2px">
+        <button class="add-btn" style="color:${sec.color};border:1px solid ${sec.color}" onclick="openAddModal('${key}')">➕ Add Row</button>
+      </div>
+    </div>` : ''}
+  </div>`;
+}
+
+function renderRow(key, row, i, sec) {
+  const cells = sec.columns.map(col => {
+    const f = col.toLowerCase();
+    if (col === '#') return `<td style="color:#555;font-size:13px">${i+1}</td>`;
+    if (col === 'Ball') return `<td><select class="ball-select" onchange="upd(s=>{const r=s.sections['${key}'].rows.find(x=>x.id===${row.id});if(r)r.ball=this.value})">
+      <option value="me" ${row.ball==='me'?'selected':''}>🟢 Me</option>
+      <option value="them" ${row.ball==='them'?'selected':''}>🔴 Them</option>
+      <option value="other" ${row.ball==='other'?'selected':''}>🟡 Other</option>
+    </select></td>`;
+    if (col === 'Comm') {
+      const cid = `${key}-${row.id}-comm`;
+      eCbs[cid] = v => upd(s=>{const r=s.sections[key].rows.find(x=>x.id===row.id);if(r)r.comm=v;});
+      return `<td class="comm">${editableCell(cid, row.comm, eCbs[cid], '#4ade80')}</td>`;
+    }
+    if (col === 'Flag') {
+      const cid = `${key}-${row.id}-flag`;
+      eCbs[cid] = v => upd(s=>{const r=s.sections[key].rows.find(x=>x.id===row.id);if(r)r.flag=v;});
+      return `<td class="flag-cell">${editableCell(cid, row.flag, eCbs[cid], '#f87171')}</td>`;
+    }
+    const isName = (col==='Person'||col==='Deal'||col==='Item');
+    const color = isName ? sec.color : '#e5e5e5';
+    const isMulti = (col==='Action'||col==='Notes'||col==='Status');
+    const cid = `${key}-${row.id}-${f}`;
+    eCbs[cid] = v => upd(s=>{const r=s.sections[key].rows.find(x=>x.id===row.id);if(r)r[f]=v;});
+    return `<td>${editableCell(cid, row[f], eCbs[cid], color, isMulti)}</td>`;
+  });
+  return `<tr draggable="true"
+    ondragstart="onDragStart(event,${i},'section','${key}')"
+    ondragover="onDragOver(event,${i},'section','${key}')"
+    ondragleave="onDragLeave(event)"
+    ondrop="onDrop(event,${i},'section','${key}')">
+    <td><span class="drag-btn">⠿</span></td>
+    <td><button class="del-btn" onclick="upd(s=>{s.sections['${key}'].rows=s.sections['${key}'].rows.filter(r=>r.id!==${row.id})})">✕</button></td>
+    ${cells.join('')}
+  </tr>`;
+}
+
+function toggleSection(key) {
+  collapsed[key] = !collapsed[key];
+  render();
+}
+
+// ── ADD ROW MODAL ─────────────────────────────────────────────────────────────
+let addModalKey = null;
+function openAddModal(key) { addModalKey = key; render(); }
+function closeModal() { addModalKey = null; render(); }
+function submitModal() {
+  const key = addModalKey;
+  const sec = state.sections[key];
+  const row = { id: uid() };
+  sec.columns.filter(c=>c!=='#').forEach(col => {
+    const f = col.toLowerCase();
+    const el = document.getElementById(`modal-field-${f}`);
+    if (el) row[f] = el.value || '';
+  });
+  upd(s => s.sections[key].rows.push(row));
+  closeModal();
+}
+
+function renderModal() {
+  if (!addModalKey) return '';
+  const sec = state.sections[addModalKey];
+  return `<div class="modal-bg" onclick="if(event.target===this)closeModal()">
+    <div class="modal" style="border:1px solid ${sec.color}">
+      <div class="modal-title" style="color:${sec.color}">➕ ADD ROW — ${sec.label}</div>
+      ${sec.columns.filter(c=>c!=='#').map(col => {
+        const f = col.toLowerCase();
+        if (col==='Ball') return `<label>${col}</label>
+          <select id="modal-field-${f}">
+            <option value="me">🟢 Me</option>
+            <option value="them">🔴 Them</option>
+            <option value="other">🟡 Other</option>
+          </select>`;
+        return `<label>${col}</label><input id="modal-field-${f}" placeholder="${col}">`;
+      }).join('')}
+      <div class="modal-btns">
+        <button class="btn-confirm" style="background:${sec.color}" onclick="submitModal()">✅ ADD</button>
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── RENDER PIPELINE ───────────────────────────────────────────────────────────
+function renderPipeline() {
+  const p = state.pipeline;
+  return `<div class="pipeline">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <div class="section-title" style="color:#fbbf24">💼 PIPELINE SNAPSHOT</div>
+    </div>
+    ${[['💰 Collectible Now','collectible','#ef4444'],['📊 Pending/In Progress','pending','#f97316'],['🌱 Long-term Farm','farm','#86efac'],['📣 Activation Needed','activation','#a78bfa'],['🏆 Total Pipeline','total','#fbbf24']].map(([label,field,color])=>`
+      <div class="pipeline-row">
+        <span style="color:#aaa">${label}</span>
+        <span style="color:${color};font-weight:${field==='total'?800:700};font-size:${field==='total'?16:13}px">${p[field]}</span>
+      </div>
+    `).join('')}
+  </div>`;
+}
+
+// ── RENDER WIN LOG ────────────────────────────────────────────────────────────
+function renderWinLog() {
+  if (!winLog.length) return '';
+  return `<div class="win-log">
+    <div class="section-title" style="color:#4ade80;margin-bottom:12px">✅ WIN LOG</div>
+    ${winLog.map(w=>`<div class="win-row">✅ ${w.action}</div>`).join('')}
+  </div>`;
+}
+
+// ── MAIN RENDER ───────────────────────────────────────────────────────────────
+function render() {
+  document.getElementById('root').innerHTML = `
+    ${renderTop3()}
+    ${renderBattle()}
+    ${renderTimeBlocks()}
+    ${Object.keys(state.sections).map(renderSection).join('')}
+    ${renderPipeline()}
+    ${renderWinLog()}
+    <div class="footer">🎖️ THE WAR ROOM &nbsp;|&nbsp; Big Matt &nbsp;|&nbsp; ${state.lastUpdated}</div>
+    ${renderModal()}
+  `;
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+// First create the table if needed, then load
+async function init() {
+  render(); // show defaults immediately
+  await loadFromCloud();
+}
+
+init();
+</script>
+
+
+</body></html>
