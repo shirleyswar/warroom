@@ -290,6 +290,8 @@ async function loadFromCloud() {
       if (!S.tomorrowPlan) S.tomorrowPlan = [];
       if (!S.lastBattleDate) S.lastBattleDate = todayStr();
       if (S.completedLog) completedLog = S.completedLog;
+      // migrate Comm -> $$ in all section column arrays
+      if(S.sections)Object.keys(S.sections).forEach(function(k){var sec=S.sections[k];if(sec.columns)sec.columns=sec.columns.map(function(c){return c==='Comm'?'$$':c;});});
       setSyncStatus('ok');
     } else { await saveToCloud(); }
   } catch(e) { console.warn(e); setSyncStatus('err'); }
