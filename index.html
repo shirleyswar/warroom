@@ -174,18 +174,21 @@ select.ball-select { background:#1a1a1a; color:#e5e5e5; border:1px solid #333; b
 
 /* MOBILE */
 @media (max-width: 640px) {
-  table { font-size: 14px; }
-  td, th { padding: 6px 6px; }
-  .battle-row { flex-wrap: wrap; }
+  table { font-size: 13px; }
+  td, th { padding: 5px 4px; }
   .time-label { min-width: 56px; font-size: 12px; }
   .top3-row { flex-wrap: wrap; }
-  h1 { font-size: 36px; }
-  .section-label { font-size: 19px; }
-  .section-title { font-size: 19px; }
-  td { word-break: break-word; overflow-wrap: break-word; hyphens: auto; }
-  .editable { word-break: break-word; overflow-wrap: break-word; hyphens: auto; max-width: 100%; }
-  select.ball-select { font-size: 12px; max-width: 82px; }
-  .header-logo { height:40px; }
+  h1 { font-size: 32px; }
+  .section-label { font-size: 17px; }
+  .section-title { font-size: 17px; }
+  td { word-break: normal; overflow-wrap: anywhere; hyphens: none; }
+  .editable { word-break: normal; overflow-wrap: anywhere; hyphens: none; max-width: 100%; white-space: normal; }
+  select.ball-select { font-size: 11px; max-width: 72px; }
+  .header-logo { height:38px; }
+  th { font-size: 10px; padding: 4px 3px; }
+  .drag-handle { display:none; }
+  td.comm { min-width: 60px; }
+  .app { padding: 12px 8px; }
 }
 </style>
 </head>
@@ -351,8 +354,8 @@ async function loadFromCloud() {
       if (S.completedLog) completedLog = S.completedLog;
       // migrate Comm -> $$ in all section column arrays
       if(S.sections)Object.keys(S.sections).forEach(function(k){var sec=S.sections[k];if(sec.columns)sec.columns=sec.columns.map(function(c){return c==='Comm'?'$$':c;});});
-      // migrate: ensure battlePlan items have comm field
-      if(S.battlePlan)S.battlePlan.forEach(function(b){if(!b.comm)b.comm='';});
+      // migrate: ensure battlePlan items have comm + person + deal fields
+      if(S.battlePlan)S.battlePlan.forEach(function(b){if(!b.comm)b.comm='';if(!b.person)b.person='';if(!b.deal)b.deal='';});
       // migrate: ensure tomorrowPlan items have comm field
       if(S.tomorrowPlan)S.tomorrowPlan.forEach(function(b){if(!b.comm)b.comm='';});
       // migrate: delete pitch and pending sections if present (use new section order)
@@ -683,21 +686,21 @@ function rTop3() {
 function rBattle() {
   var rows=S.battlePlan.map(function(item,i){
     var g=(drag&&drag.lt==='battle'&&drag.curIdx===i)?'drag-ghost':'';
-    return '<div class="battle-row '+(item.done?'done':'')+' '+g+'" data-drag-row data-drag-lt="battle" data-drag-key="battle" data-drag-idx="'+i+'">'+
-      '<span class="drag-handle" onmousedown="startDrag(event,\'battle\',\'battle\','+i+')" ontouchstart="startDrag(event,\'battle\',\'battle\','+i+')">⠿</span>'+
-      ep('bpf'+item.id,item.flag,function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.flag=v;});})+
-      '<span class="check" onclick="toggleBattle('+item.id+')">'+(item.done?'✅':'⬜')+'</span>'+
-      '<span style="flex:1;font-size:15px;text-decoration:'+(item.done?'line-through':'none')+'">'+
-        ec('bpa'+item.id,item.action,'#e5e5e5',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.action=v;});})+
-      '</span>'+
-      ecComm('bpc'+item.id,item.comm||'',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.comm=v;})})+
-      '<select class="ball-select" onchange="upd(function(s){var b=s.battlePlan.find(function(x){return x.id==='+item.id+'});if(b)b.ball=this.value})">'+
+    return '<tr class="'+g+'" data-drag-row data-drag-lt="battle" data-drag-key="battle" data-drag-idx="'+i+'" style="'+(item.done?'opacity:0.5':'')+'">' +
+      '<td style="width:22px"><span class="drag-handle" onmousedown="startDrag(event,\'battle\',\'battle\','+i+')" ontouchstart="startDrag(event,\'battle\',\'battle\','+i+')">⠿</span></td>'+
+      '<td style="width:28px">'+ep('bpf'+item.id,item.flag,function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.flag=v;})})+'</td>'+
+      '<td style="width:28px"><span class="check" style="font-size:18px" onclick="toggleBattle('+item.id+')">'+(item.done?'✅':'⬜')+'</span></td>'+
+      '<td>'+ec('bpp'+item.id,item.person||'','#f59e0b',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.person=v;})})+'</td>'+
+      '<td>'+ec('bpd'+item.id,item.deal||'','#7dd3fc',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.deal=v;})})+'</td>'+
+      '<td style="min-width:160px"><span style="text-decoration:'+(item.done?'line-through':'none')+'">'+ec('bpa'+item.id,item.action,'#e5e5e5',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.action=v;})})+'</span></td>'+
+      '<td style="white-space:nowrap">'+ecComm('bpc'+item.id,item.comm||'',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.comm=v;})})+'</td>'+
+      '<td><select class="ball-select" onchange="upd(function(s){var b=s.battlePlan.find(function(x){return x.id==='+item.id+'});if(b)b.ball=this.value})">'+
         '<option value="me" '+(item.ball==='me'?'selected':'')+'>🟢 Me</option>'+
         '<option value="them" '+(item.ball==='them'?'selected':'')+'>🔴 Them</option>'+
         '<option value="other" '+(item.ball==='other'?'selected':'')+'>🟡 Other</option>'+
-      '</select>'+
-      '<button class="del-btn" onclick="upd(function(s){s.battlePlan=s.battlePlan.filter(function(x){return x.id!=='+item.id+'})})">✕</button>'+
-    '</div>';
+      '</select></td>'+
+      '<td><button class="del-btn" onclick="upd(function(s){s.battlePlan=s.battlePlan.filter(function(x){return x.id!=='+item.id+'})})">✕</button></td>'+
+    '</tr>';
   }).join('');
 
   var tomorrowHtml='';
@@ -706,7 +709,7 @@ function rBattle() {
       '<div class="tomorrow-queue-label">🔁 NEXT FLOW</div>'+
       S.tomorrowPlan.map(function(item){
         return '<div class="tomorrow-queue-item">'+
-          '<span>'+esc(item.action)+'</span>'+
+          '<span>'+(item.person?'<span style="color:#f59e0b">'+esc(item.person)+'</span> — ':'')+esc(item.action)+'</span>'+
           '<button class="restore-btn" onclick="removeTomorrow('+item.id+')">↩ Move to Today</button>'+
         '</div>';
       }).join('')+
@@ -716,8 +719,23 @@ function rBattle() {
   return '<div class="battle">'+
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
       '<div class="section-title" style="color:#60a5fa">🔥 BATTLE PLAN</div>'+
-      '<button class="add-btn" style="color:#60a5fa;border:1px solid #60a5fa" onclick="upd(function(s){s.battlePlan.push({id:uid(),done:false,action:\'New item\',flag:\'\',ball:\'me\'})})">➕ Add</button>'+
-    '</div>'+rows+tomorrowHtml+'</div>';
+      '<button class="add-btn" style="color:#60a5fa;border:1px solid #60a5fa" onclick="upd(function(s){s.battlePlan.push({id:uid(),done:false,person:\'\',deal:\'\',action:\'New item\',flag:\'\',ball:\'me\',comm:\'\'})})">➕ Add</button>'+
+    '</div>'+
+    '<div style="overflow-x:auto"><table>'+
+      '<thead><tr>'+
+        '<th style="width:22px"></th>'+
+        '<th style="width:28px">Flag</th>'+
+        '<th style="width:28px"></th>'+
+        '<th>Person</th>'+
+        '<th>Deal</th>'+
+        '<th>Action</th>'+
+        '<th>$$</th>'+
+        '<th>Ball</th>'+
+        '<th style="width:22px"></th>'+
+      '</tr></thead>'+
+      '<tbody>'+rows+'</tbody>'+
+    '</table></div>'+
+    tomorrowHtml+'</div>';
 }
 
 // ── ACTION MODAL ──────────────────────────────────────────────────────────────
@@ -799,7 +817,7 @@ function rSection(key) {
       }):sec.rows).map(function(row,i){return rRow(key,row,i,sec);}).join('')+'</tbody>'+
     '</table></div>'+
     '<div style="margin-top:6px;padding-left:2px">'+
-      '<button class="add-btn" style="color:'+sec.color+';border:1px solid '+sec.color+'" onclick="openAddModal(\''+key+'\')">➕ Add Row</button>'+
+      '<button class="add-btn" style="color:'+sec.color+';border:1px solid '+sec.color+'" onclick="openAddModal(\''+key+'\')">'+( key==='schedule'?'➕ Add Event':'➕ Add Row')+''+
     '</div></div>':'')+
   '</div>';
 }
@@ -843,23 +861,83 @@ function submitModal(){
     if(el) row[f]=el.value||'';
   });
   if(key==='schedule'){var pc=document.getElementById('mf-protect');row.protect=pc?pc.checked:false;}
-  upd(function(s){s.sections[key].rows.push(row);}); addModalKey=null;
+  addModalKey=null;
+  upd(function(s){s.sections[key].rows.push(row);});
 }
 function rModal(){
   if(!addModalKey) return '';
   var sec=S.sections[addModalKey];
+  var isSchedule=(addModalKey==='schedule');
+  var title = isSchedule ? '📅 ADD EVENT' : '➕ ADD ROW';
+  var fields;
+  if(isSchedule){
+    fields =
+      '<label>Date</label><input type="date" id="mf-date" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;">'+
+      '<label>Day</label><input id="mf-day" placeholder="Mon / Tue / etc" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;">'+
+      '<label>Time</label><input type="time" id="mf-time" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;">'+
+      '<label>Event</label><input id="mf-event" placeholder="Event description" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;">'+
+      '<label style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:13px;color:#f59e0b"><input type="checkbox" id="mf-protect"> 🔒 Protect from auto-delete</label>';
+  } else {
+    fields = sec.columns.filter(function(c){return c!=='#';}).map(function(col){
+      var f=col.toLowerCase();
+      if(col==='Ball') return '<label>'+col+'</label><select id="mf-'+f+'"><option value="me">🟢 Me</option><option value="them">🔴 Them</option><option value="other">🟡 Other</option></select>';
+      return '<label>'+col+'</label><input id="mf-'+f+'" placeholder="'+col+'">';
+    }).join('');
+  }
   return '<div class="modal-bg" onclick="if(event.target===this)closeModal()">'+
     '<div class="modal" style="border:1px solid '+sec.color+'">'+
-      '<div class="modal-title" style="color:'+sec.color+'">➕ ADD ROW</div>'+
-      sec.columns.filter(function(c){return c!=='#';}).map(function(col){
-        var f=col.toLowerCase();
-        if(col==='Ball') return '<label>'+col+'</label><select id="mf-'+f+'"><option value="me">🟢 Me</option><option value="them">🔴 Them</option><option value="other">🟡 Other</option></select>';
-        return '<label>'+col+'</label><input id="mf-'+f+'" placeholder="'+col+'">';
-      }).join('')+
-      (addModalKey==='schedule'?'<label style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:13px;color:#f59e0b"><input type="checkbox" id="mf-protect"> 🔒 Protect from auto-delete</label>':'')+'<div class="modal-btns">'+
-        '<button class="btn-confirm" style="background:'+sec.color+'" onclick="submitModal()">✅ ADD</button>'+
+      '<div class="modal-title" style="color:'+sec.color+'">'+title+'</div>'+
+      fields+
+      '<div class="modal-btns">'+
+        '<button class="btn-confirm" style="background:'+sec.color+'" onclick="submitScheduleModal()">✅ '+(isSchedule?'ADD EVENT':'ADD')+'</button>'+
         '<button class="btn-cancel" onclick="closeModal()">Cancel</button>'+
       '</div></div></div>';
+}
+
+function submitScheduleModal(){
+  var key=addModalKey, sec=S.sections[key], row={id:uid()};
+  if(key==='schedule'){
+    var dateEl=document.getElementById('mf-date');
+    var timeEl=document.getElementById('mf-time');
+    var dayEl=document.getElementById('mf-day');
+    var eventEl=document.getElementById('mf-event');
+    var protEl=document.getElementById('mf-protect');
+    // Format date from YYYY-MM-DD to M/D
+    var dateVal='';
+    if(dateEl&&dateEl.value){
+      var parts=dateEl.value.split('-');
+      dateVal=parseInt(parts[1])+'/'+parseInt(parts[2]);
+    }
+    // Format time from HH:MM to H:MM AM/PM
+    var timeVal='—';
+    if(timeEl&&timeEl.value){
+      var tp=timeEl.value.split(':');
+      var h=parseInt(tp[0]),m=parseInt(tp[1]);
+      var ampm=h>=12?'PM':'AM'; h=h%12||12;
+      timeVal=h+':'+(m<10?'0'+m:m)+' '+ampm;
+    }
+    // Auto-compute day of week from date
+    var dayVal='';
+    if(dayEl&&dayEl.value) dayVal=dayEl.value;
+    else if(dateEl&&dateEl.value){
+      var days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      dayVal=days[new Date(dateEl.value+'T12:00:00').getDay()];
+    }
+    row.date=dateVal;
+    row.day=dayVal;
+    row.time=timeVal;
+    row.event=eventEl?eventEl.value:'';
+    row.flag='📅';
+    row.protect=protEl?protEl.checked:false;
+  } else {
+    sec.columns.filter(function(c){return c!=='#';}).forEach(function(col){
+      var f=col.toLowerCase(), el=document.getElementById('mf-'+f);
+      if(el) row[f]=el.value||'';
+    });
+    if(key==='schedule'){var pc=document.getElementById('mf-protect');row.protect=pc?pc.checked:false;}
+  }
+  addModalKey=null;
+  upd(function(s){s.sections[key].rows.push(row);});
 }
 
 // ── PIPELINE ──────────────────────────────────────────────────────────────────
