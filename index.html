@@ -357,6 +357,19 @@ async function loadFromCloud() {
       // migrate: ensure closedDeals and deals exist
       if(!S.closedDeals) S.closedDeals=[];
       if(!S.deals) S.deals=[];
+      // migrate deal fields: owner→contact, remove tenant
+      S.deals.forEach(function(d){
+        if(!d.contact && d.owner) d.contact=d.owner;
+        if(!d.contact) d.contact='';
+        delete d.owner; delete d.tenant;
+        if(!d.sqft) d.sqft='';
+        if(!d.price) d.price='';
+        if(!d.dealType) d.dealType='';
+        if(!d.status) d.status='Active';
+        if(!d.commission) d.commission='';
+        if(!d.keyDates) d.keyDates='';
+        if(!d.notes) d.notes='';
+      });
       // migrate: ensure battlePlan items have comm + person + deal fields
       if(S.battlePlan)S.battlePlan.forEach(function(b){if(!b.comm)b.comm='';if(!b.person)b.person='';if(!b.deal)b.deal='';});
       // migrate: ensure tomorrowPlan items have comm field
@@ -708,10 +721,23 @@ function rTop3() {
 // ── BATTLE PLAN ───────────────────────────────────────────────────────────────
 function rDealDropdown(bpId, currentDeal) {
   if(!S.deals) S.deals=[];
+      // migrate deal fields: owner→contact, remove tenant
+      S.deals.forEach(function(d){
+        if(!d.contact && d.owner) d.contact=d.owner;
+        if(!d.contact) d.contact='';
+        delete d.owner; delete d.tenant;
+        if(!d.sqft) d.sqft='';
+        if(!d.price) d.price='';
+        if(!d.dealType) d.dealType='';
+        if(!d.status) d.status='Active';
+        if(!d.commission) d.commission='';
+        if(!d.keyDates) d.keyDates='';
+        if(!d.notes) d.notes='';
+      });
   var opts = S.deals.map(function(d){
     return '<option value="'+esc(d.name)+'" '+(currentDeal===d.name?'selected':'')+'>'+esc(d.name)+'</option>';
   }).join('');
-  return '<select style="background:#111;color:#7dd3fc;border:1px solid #334;border-radius:4px;font-size:13px;padding:2px 4px;max-width:140px;" '+
+  return '<select style="background:#111;color:#7dd3fc;border:1px solid #334;border-radius:4px;font-size:13px;padding:2px 4px;width:100%;min-width:120px;max-width:220px;" '+
     'onchange="bpDealChange('+bpId+',this.value)">'+
     '<option value="" '+((!currentDeal||currentDeal==='')?'selected':'')+'>— deal —</option>'+
     opts+
@@ -725,7 +751,20 @@ function bpDealChange(bpId, val) {
     if(!name||!name.trim()) { renderOnly(); return; }
     var trimmed = name.trim();
     if(!S.deals) S.deals=[];
-    S.deals.push({id:uid(), name:trimmed, expanded:false, sqft:'', price:'', owner:'', tenant:'', dealType:'', status:'Active', commission:'', notes:'', keyDates:''});
+      // migrate deal fields: owner→contact, remove tenant
+      S.deals.forEach(function(d){
+        if(!d.contact && d.owner) d.contact=d.owner;
+        if(!d.contact) d.contact='';
+        delete d.owner; delete d.tenant;
+        if(!d.sqft) d.sqft='';
+        if(!d.price) d.price='';
+        if(!d.dealType) d.dealType='';
+        if(!d.status) d.status='Active';
+        if(!d.commission) d.commission='';
+        if(!d.keyDates) d.keyDates='';
+        if(!d.notes) d.notes='';
+      });
+    S.deals.push({id:uid(), name:trimmed, expanded:true, sqft:'', price:'', contact:'', dealType:'', status:'Active', commission:'', notes:'', keyDates:''});
     upd(function(s){ var b=s.battlePlan.find(function(x){return x.id===bpId;}); if(b)b.deal=trimmed; });
   } else {
     upd(function(s){ var b=s.battlePlan.find(function(x){return x.id===bpId;}); if(b)b.deal=val; });
@@ -879,8 +918,21 @@ function addDeal(name) {
   if(!dealName || !dealName.trim()) return null;
   var trimmed = dealName.trim();
   if(!S.deals) S.deals=[];
+      // migrate deal fields: owner→contact, remove tenant
+      S.deals.forEach(function(d){
+        if(!d.contact && d.owner) d.contact=d.owner;
+        if(!d.contact) d.contact='';
+        delete d.owner; delete d.tenant;
+        if(!d.sqft) d.sqft='';
+        if(!d.price) d.price='';
+        if(!d.dealType) d.dealType='';
+        if(!d.status) d.status='Active';
+        if(!d.commission) d.commission='';
+        if(!d.keyDates) d.keyDates='';
+        if(!d.notes) d.notes='';
+      });
   if(S.deals.find(function(d){return d.name===trimmed;})) return trimmed;
-  S.deals.push({id:uid(), name:trimmed, expanded:false, sqft:'', price:'', owner:'', tenant:'', dealType:'', status:'Active', commission:'', notes:'', keyDates:''});
+  S.deals.push({id:uid(), name:trimmed, expanded:true, sqft:'', price:'', contact:'', dealType:'', status:'Active', commission:'', notes:'', keyDates:''});
   scheduleSave();
   return trimmed;
 }
@@ -897,22 +949,46 @@ function updateDealField(id, field, val) {
 
 function rDealDetail(deal) {
   var fields = [
-    {key:'sqft',label:'SqFt',color:'#e5e5e5'},
-    {key:'price',label:'Price',color:'#4ade80'},
-    {key:'owner',label:'Owner',color:'#f59e0b'},
-    {key:'tenant',label:'Tenant',color:'#7dd3fc'},
-    {key:'dealType',label:'Deal Type',color:'#c4b5fd'},
-    {key:'status',label:'Status',color:'#fbbf24'},
-    {key:'commission',label:'Commission',color:'#4ade80'},
-    {key:'keyDates',label:'Key Dates',color:'#67e8f9'},
-    {key:'notes',label:'Notes',color:'#aaa'},
+    {key:'sqft',label:'SqFt',color:'#e5e5e5',fmt:'sqft'},
+    {key:'price',label:'Price',color:'#4ade80',fmt:'price'},
+    {key:'contact',label:'Contact',color:'#f59e0b',fmt:'text'},
+    {key:'dealType',label:'Deal Type',color:'#c4b5fd',fmt:'text'},
+    {key:'status',label:'Status',color:'#fbbf24',fmt:'text'},
+    {key:'commission',label:'Commission $$',color:'#4ade80',fmt:'comm'},
+    {key:'keyDates',label:'Key Dates',color:'#67e8f9',fmt:'text'},
+    {key:'notes',label:'Notes',color:'#aaa',fmt:'text'},
   ];
   var cells = fields.map(function(f){
     var ecId='dl'+deal.id+f.key;
     var val = deal[f.key]||'';
     var cell;
-    if(f.key==='commission'){
-      cell = ecComm(ecId, val, function(v){updateDealField(deal.id,'commission',v);});
+    if(f.fmt==='comm'){
+      // auto-calc hint if empty: price x 0.03 x 0.75
+      var dispVal = val;
+      if(!val){
+        var priceRaw = parseFloat(String(deal.price||'').replace(/[^0-9.]/g,''))||0;
+        if(priceRaw>0) dispVal = '$'+Math.round(priceRaw*0.03*0.75).toLocaleString('en-US');
+      }
+      cell = ecComm(ecId, dispVal, function(v){updateDealField(deal.id,'commission',v);});
+    } else if(f.fmt==='sqft'){
+      var sqftNum = parseInt(String(val).replace(/[^0-9]/g,''))||0;
+      var sqftDisp = sqftNum>0 ? sqftNum.toLocaleString('en-US') : '';
+      cell = '<span contenteditable="true" style="color:'+f.color+';outline:none;min-width:60px;display:inline-block;cursor:text" '+
+        'onfocus="(function(el){el.innerText=el.innerText.replace(/[^0-9]/g,\'\');})(this)" '+
+        'onblur="(function(el,id){var n=parseInt(el.innerText.replace(/[^0-9]/g,\'\'))||0;el.innerText=n>0?n.toLocaleString(\'en-US\'):\'\';updateDealField(id,\'sqft\',n>0?n.toLocaleString(\'en-US\'):\'\');})(this,'+deal.id+')">'+esc(sqftDisp)+'</span>';
+    } else if(f.fmt==='price'){
+      var priceNum = parseFloat(String(val).replace(/[^0-9.]/g,''))||0;
+      var priceDisp = priceNum>0 ? '$'+Math.round(priceNum).toLocaleString('en-US') : '';
+      cell = '<span contenteditable="true" style="color:'+f.color+';outline:none;min-width:80px;display:inline-block;cursor:text" '+
+        'onfocus="(function(el){el.innerText=el.innerText.replace(/[^0-9.]/g,\'\');})(this)" '+
+        'onblur="(function(el,id){'+
+          'var n=parseFloat(el.innerText.replace(/[^0-9.]/g,\'\'))||0;'+
+          'var disp=n>0?\'$\'+Math.round(n).toLocaleString(\'en-US\'):\'\';'+
+          'el.innerText=disp;'+
+          'updateDealField(id,\'price\',disp);'+
+          'var d=S.deals.find(function(x){return x.id===id;});'+
+          'if(d&&!d.commission&&n>0){updateDealField(id,\'commission\',\'$\'+Math.round(n*0.03*0.75).toLocaleString(\'en-US\'));renderOnly();}'+
+        '})(this,'+deal.id+')">'+esc(priceDisp)+'</span>';
     } else {
       cell = ec(ecId, val, f.color, function(v){var id=deal.id,fk=f.key; updateDealField(id,fk,v);});
     }
@@ -924,6 +1000,19 @@ function rDealDetail(deal) {
 
 function rDeals() {
   if(!S.deals) S.deals=[];
+      // migrate deal fields: owner→contact, remove tenant
+      S.deals.forEach(function(d){
+        if(!d.contact && d.owner) d.contact=d.owner;
+        if(!d.contact) d.contact='';
+        delete d.owner; delete d.tenant;
+        if(!d.sqft) d.sqft='';
+        if(!d.price) d.price='';
+        if(!d.dealType) d.dealType='';
+        if(!d.status) d.status='Active';
+        if(!d.commission) d.commission='';
+        if(!d.keyDates) d.keyDates='';
+        if(!d.notes) d.notes='';
+      });
   var isOpen = !dealsCollapsed;
 
   var dealRows = S.deals.map(function(deal) {
@@ -1276,11 +1365,11 @@ var DEFAULT = {
   },
   closedDeals:[],
   deals:[
-    {id:9001, name:'4950 Government St', expanded:false, sqft:'', price:'', owner:'Donnie Braud', tenant:'', dealType:'Sale', status:'Under Contract', commission:'$13,200', notes:'Under contract — need pertinent dates', keyDates:''},
-    {id:9002, name:'Hank Saurage — Plaquemine', expanded:false, sqft:'', price:'', owner:'', tenant:'', dealType:'Sale', status:'Active', commission:'$14,063', notes:'Review buyer PSA comments & respond', keyDates:''},
-    {id:9003, name:'LA Blue Monroe Portfolio', expanded:false, sqft:'', price:'', owner:'', tenant:'LA Blue', dealType:'Lease', status:'Active', commission:'$300,000', notes:'Activate all platforms', keyDates:''},
-    {id:9004, name:'RaceTrac Land', expanded:false, sqft:'', price:'', owner:'', tenant:'RaceTrac', dealType:'Land', status:'Active', commission:'$48,000', notes:'Awaiting DOTD Approval', keyDates:''},
-    {id:9005, name:'Dutch Brothers — GVI', expanded:false, sqft:'', price:'', owner:'', tenant:'Dutch Brothers', dealType:'Sale', status:'Under Contract', commission:'$16,650', notes:'Need pertinent dates, deposit & DD material', keyDates:''},
+    {id:9001, name:'4950 Government St', expanded:false, sqft:'', price:'', contact:'Donnie Braud', dealType:'Sale', status:'Under Contract', commission:'$13,200', notes:'Under contract — need pertinent dates', keyDates:''},
+    {id:9002, name:'Hank Saurage — Plaquemine', expanded:false, sqft:'', price:'', contact:'Hank Saurage', dealType:'Sale', status:'Active', commission:'$14,063', notes:'Review buyer PSA comments & respond', keyDates:''},
+    {id:9003, name:'LA Blue Monroe Portfolio', expanded:false, sqft:'', price:'', contact:'Connie Spivey', dealType:'Lease', status:'Active', commission:'$300,000', notes:'Activate all platforms', keyDates:''},
+    {id:9004, name:'RaceTrac Land', expanded:false, sqft:'', price:'', contact:'', dealType:'Land', status:'Active', commission:'$48,000', notes:'Awaiting DOTD Approval', keyDates:''},
+    {id:9005, name:'Dutch Brothers — GVI', expanded:false, sqft:'', price:'', contact:'', dealType:'Sale', status:'Under Contract', commission:'$16,650', notes:'Need pertinent dates, deposit & DD material', keyDates:''},
   ],
   pipeline:{collectible:"~$61,600",pending:"~$267,996",farm:"$200,000",activation:"$300,000",total:"~$829,596"}
 };
