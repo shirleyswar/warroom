@@ -669,7 +669,7 @@ function collectPayment(key, rowId) {
 function renderOnly() {
   var root=document.getElementById('root'); if(!root) return;
   root.innerHTML =
-    rTop3()+rBattle()+rTimeBlocks()+
+    rTop3()+rBattle()+rTimeBlocks()+rDeals()+
     (function(){
     var ORDER=['ehvp','collect','active','contract','hvp','offbook','personal','farm','schedule'];
     var keys=ORDER.filter(function(k){return S.sections[k];});
