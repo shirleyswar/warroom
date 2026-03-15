@@ -222,6 +222,8 @@ async function loadFromCloud(){
       if(S.battlePlan)S.battlePlan.forEach(function(b){if(!b.comm)b.comm='';if(!b.person)b.person='';if(!b.deal)b.deal='';});
       if(S.tomorrowPlan)S.tomorrowPlan.forEach(function(b){if(!b.comm)b.comm='';});
       // MIGRATION: add Type col to active if missing
+      // MIGRATION: add dealRef to active rows
+      if(S.sections&&S.sections.active)S.sections.active.rows.forEach(function(r){if(!r.dealRef)r.dealRef='';});
       if(S.sections&&S.sections.active&&S.sections.active.columns&&S.sections.active.columns.indexOf('Type')===-1){var ai=S.sections.active.columns.indexOf('$$');if(ai===-1)ai=2;S.sections.active.columns.splice(ai,0,'Type');S.sections.active.rows.forEach(function(r){if(!r.type)r.type='';});}
       // MIGRATION: add Type col to contract if missing
       if(S.sections&&S.sections.contract&&S.sections.contract.columns&&S.sections.contract.columns.indexOf('Type')===-1){var ci=S.sections.contract.columns.indexOf('$$');if(ci===-1)ci=2;S.sections.contract.columns.splice(ci,0,'Type');S.sections.contract.rows.forEach(function(r){if(!r.type)r.type='';});}
@@ -259,7 +261,9 @@ function collectPayment(key,rowId){var row=S.sections[key]&&S.sections[key].rows
 
 function renderOnly(){var root=document.getElementById('root');if(!root)return;root.innerHTML=rTop3()+rBattle()+rTimeBlocks()+rDeals()+(function(){var ORDER=['ehvp','collect','active','contract','hvp','offbook','personal','farm','schedule'];var keys=ORDER.filter(function(k){return S.sections[k];});Object.keys(S.sections).forEach(function(k){if(keys.indexOf(k)===-1)keys.push(k);});return keys.map(rSection).join('');})() +rPipeline()+rClosedDeals()+rCompletedLog()+'<div class="footer">🎖️ THE WAR ROOM &nbsp;|&nbsp; Big Matt &nbsp;|&nbsp; Saurage Rotenberg CRE &nbsp;|&nbsp; '+S.lastUpdated+'</div>'+rModal()+rActionModal()+rSectionActionModal()+rBlockModal();}
 
-function rTop3(){var rows=S.top3.map(function(item,i){var g=(drag&&drag.lt==='top3'&&drag.curIdx===i)?'drag-ghost':'';return'<div class="top3-row '+g+'" data-drag-row data-drag-lt="top3" data-drag-key="top3" data-drag-idx="'+i+'"><span class="drag-handle" onmousedown="startDrag(event,\'top3\',\'top3\','+i+')" ontouchstart="startDrag(event,\'top3\',\'top3\','+i+')">⠿</span>'+ep('t3f'+item.id,item.flag,function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.flag=v;})})+' <div style="flex:1;min-width:0"><div style="font-weight:700;font-size:16px">'+ec('t3d'+item.id,item.deal,'#fff',function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.deal=v;})})+'</div><div style="font-size:13px;margin-top:2px">'+ec('t3w'+item.id,item.why,'#999',function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.why=v;})})+'</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'+ec('t3c'+item.id,item.comm,'#4ade80',function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.comm=v;})})+'<button class="del-btn" onclick="upd(function(s){s.top3=s.top3.filter(function(x){return x.id!=='+item.id+'})})">✕</button></div></div>';}).join('');return'<div class="top3"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="section-title" style="color:#f59e0b">💰 MONEY MOVERS</div><button class="add-btn" style="color:#f59e0b;border:1px solid #f59e0b" onclick="upd(function(s){s.top3.push({id:uid(),flag:\'🔥\',deal:\'New Deal\',why:\'Why this matters\',comm:\'TBD\'})})">➕ Add</button></div>'+rows+'</div>';}
+function rTop3DealDrop(itemId,cur){if(!S.deals)S.deals=[];var opts=S.deals.map(function(d){return'<option value="'+esc(d.name)+'" '+(cur===d.name?'selected':'')+'>'+esc(d.name)+'</option>';}).join('');return'<select style="background:#111;color:#7dd3fc;border:1px solid #334;border-radius:4px;font-size:13px;padding:2px 4px;min-width:90px;max-width:160px;" onchange="t3DealChange('+itemId+',this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New</option></select>';}
+function t3DealChange(itemId,val){if(val==='__new__'){var n=prompt('New Deal ID:');if(!n||!n.trim()){renderOnly();return;}var t=n.trim();if(!S.deals)S.deals=[];if(!S.deals.find(function(d){return d.name===t;}))S.deals.push({id:uid(),name:t,expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''});upd(function(s){var item=s.top3.find(function(x){return x.id===itemId;});if(item)item.dealRef=t;});}else upd(function(s){var item=s.top3.find(function(x){return x.id===itemId;});if(item)item.dealRef=val;});}
+function rTop3(){var rows=S.top3.map(function(item,i){var g=(drag&&drag.lt==='top3'&&drag.curIdx===i)?'drag-ghost':'';return'<div class="top3-row '+g+'" data-drag-row data-drag-lt="top3" data-drag-key="top3" data-drag-idx="'+i+'"><span class="drag-handle" onmousedown="startDrag(event,\'top3\',\'top3\','+i+')" ontouchstart="startDrag(event,\'top3\',\'top3\','+i+')">⠿</span>'+ep('t3f'+item.id,item.flag,function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.flag=v;})})+' <div style="flex:1;min-width:0"><div style="margin-bottom:4px">'+rTop3DealDrop(item.id,item.dealRef||'')+'</div><div style="font-weight:700;font-size:16px">'+ec('t3d'+item.id,item.deal,'#fff',function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.deal=v;})})+'</div><div style="font-size:13px;margin-top:2px">'+ec('t3w'+item.id,item.why,'#999',function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.why=v;})})+'</div></div><div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'+ec('t3c'+item.id,item.comm,'#4ade80',function(v){var id=item.id;upd(function(s){var t=s.top3.find(function(x){return x.id===id;});if(t)t.comm=v;})})+'<button class="del-btn" onclick="upd(function(s){s.top3=s.top3.filter(function(x){return x.id!=='+item.id+'})})">✕</button></div></div>';}).join('');return'<div class="top3"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="section-title" style="color:#f59e0b">💰 MONEY MOVERS</div><button class="add-btn" style="color:#f59e0b;border:1px solid #f59e0b" onclick="upd(function(s){s.top3.push({id:uid(),flag:\'🔥\',deal:\'New Deal\',why:\'Why this matters\',comm:\'TBD\',dealRef:\'\'})})">➕ Add</button></div>'+rows+'</div>';}
 
 // BATTLE PLAN — FLAG COLUMN REMOVED
 function rBpDealDrop(bpId,cur){if(!S.deals)S.deals=[];var opts=S.deals.map(function(d){return'<option value="'+esc(d.name)+'" '+(cur===d.name?'selected':'')+'>'+esc(d.name)+'</option>';}).join('');return'<select style="background:#111;color:#7dd3fc;border:1px solid #334;border-radius:4px;font-size:13px;padding:2px 4px;min-width:90px;max-width:160px;" onchange="bpDealChange('+bpId+',this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New</option></select>';}
@@ -309,6 +313,8 @@ function rRow(key,row,i,sec){
     if(col==='$$')return'<td class="comm" style="white-space:nowrap">'+ecComm(key+'c'+row.id,row.comm,function(v){var k=key,id=row.id;upd(function(s){var r=s.sections[k].rows.find(function(x){return x.id===id;});if(r)r.comm=v;})})+'</td>';
     // TYPE dropdown — active and contract
     if(col==='Type')return'<td>'+rDealTypeSelect(key,row.id,row.type||'')+'</td>';
+    // DEAL REF dropdown — active section
+    if(col==='Deal Ref')return'<td>'+rSectionDealDrop(key,row.id,row.dealRef||'')+'</td>';
     if(col==='Flag'){
       var pBtn=(key==='schedule')?'<button style="background:none;border:1px solid '+(row.protect?'#f59e0b':'#333')+';border-radius:4px;cursor:pointer;padding:1px 4px;font-size:14px;margin-left:4px;" title="'+(row.protect?'Protected':'Click to protect')+'" onclick="upd(function(s){var r=s.sections.schedule.rows.find(function(x){return x.id==='+row.id+'});if(r)r.protect=!r.protect;})">'+(row.protect?'🔒':'🔓')+'</button>':'';
       var cBtn=(key==='collect')?'<button onclick="collectPayment(\'collect\','+row.id+')" style="background:#14532d;color:#4ade80;border:1px solid #16a34a;border-radius:5px;padding:2px 8px;font-size:12px;font-weight:700;cursor:pointer;margin-left:6px;white-space:nowrap;">💰 Collected</button>':'';
@@ -339,9 +345,9 @@ function rCompletedLog(){var total=completedLog.length,isOpen=!completedLogColla
 var DEFAULT={
   lastUpdated:"3/14/26",lastBattleDate:"",tomorrowPlan:[],
   top3:[
-    {id:1,flag:"🚨",deal:"Melissa Stockstill — LA Blue (Separate Deal)",why:"HARD DEADLINE — call TODAY. She departs 3/13. Do not miss this window.",comm:"TBD"},
-    {id:2,flag:"🔥",deal:"Wicker Park — Hobby Lobby Center",why:"$200k commission. Get the answer. Biggest single move you can make this week.",comm:"$200,000"},
-    {id:3,flag:"👑",deal:"Hank Saurage — Plaquemine PSA",why:"Ball is YOUR COURT. Review buyer PSA comments and respond. EHVP — always first.",comm:"$14,063"}
+    {id:1,flag:"🚨",dealRef:"",deal:"Melissa Stockstill — LA Blue (Separate Deal)",why:"HARD DEADLINE — call TODAY. She departs 3/13. Do not miss this window.",comm:"TBD"},
+    {id:2,flag:"🔥",dealRef:"",deal:"Wicker Park — Hobby Lobby Center",why:"$200k commission. Get the answer. Biggest single move you can make this week.",comm:"$200,000"},
+    {id:3,flag:"👑",dealRef:"Hank Saurage — Plaquemine",deal:"Hank Saurage — Plaquemine PSA",why:"Ball is YOUR COURT. Review buyer PSA comments and respond. EHVP — always first.",comm:"$14,063"}
   ],
   battlePlan:[
     {id:1,done:false,person:"Melissa Stockstill",deal:"",action:"Call Melissa — LA Blue separate deal — DEPARTS 3/13",comm:"TBD"},
@@ -362,30 +368,30 @@ var DEFAULT={
     {id:3,time:"2:00 PM",event:"Anne Underwood @ Edinburgh",flag:"🏠"}
   ],
   sections:{
-    ehvp:{label:"👑 EHVP",color:"#f59e0b",total:"$14,063+",columns:["#","Person","Deal","Action","$$","Ball","Flag"],rows:[
+    ehvp:{label:"👑 EHVP",color:"#f59e0b",total:"$14,063+",columns:["#","Person","Deal","Action","$$","Ball"],rows:[
       {id:9,person:"👑 Hank Saurage",deal:"Hank Saurage — Plaquemine",action:"Review Buyer PSA Comments & Respond",comm:"$14,063",ball:"me",flag:"⚖️"},
       {id:10,person:"👑 Edward Rotenberg",deal:"",action:"2831 Darla Ave — Punch List Remaining Work",comm:"TBD",ball:"them",flag:"👀"}
     ]},
-    collect:{label:"🚨 ACCOUNTS RECEIVABLE",color:"#f87171",total:"$61,600",columns:["#","Deal","Action","$$","Ball","Flag"],rows:[
+    collect:{label:"🚨 ACCOUNTS RECEIVABLE",color:"#f87171",total:"$61,600",columns:["#","Deal","Action","$$","Flag"],rows:[
       {id:11,deal:"LA Blue Lease — Worley Inc.",action:"$30k due NOW",comm:"$60,000",ball:"them",flag:"🚨"},
       {id:12,deal:"619 Jefferson — Bob Belk HVP",action:"Lease closed — collect",comm:"$1,600",ball:"them",flag:"🚨"}
     ]},
-    active:{label:"🔥 ACTIVE DEALS",color:"#fdba74",total:"$479,500+",columns:["#","Deal","Type","Action","$$","Ball","Flag"],rows:[
-      {id:42,deal:"Melissa Stockstill — LA Blue (Separate Deal)",type:"Lease",action:"CALL TODAY — Departs company 3/13.",comm:"TBD",ball:"me",flag:"🚨"},
-      {id:13,deal:"LA Blue Monroe Portfolio",type:"Lease",action:"Activate all platforms / Get with Ashley",comm:"$300,000",ball:"me",flag:"🔥"},
-      {id:14,deal:"RaceTrac Land Acquisition",type:"Land",action:"Awaiting DOTD Approval",comm:"$48,000",ball:"them",flag:"⏳"},
-      {id:15,deal:"1301 Hudson Lane — Monroe",type:"Sale",action:"Offering memo delivered — Push Sam for next action",comm:"$31,500",ball:"them",flag:"📋"},
-      {id:16,deal:"Ashley Furniture Portfolio",type:"Lease",action:"Kimberly Boger — Get new DSG Contact",comm:"$50,000",ball:"me",flag:"📞"},
-      {id:17,deal:"Ashley Furniture — Dutch Brothers Outparcel",type:"Sale",action:"Work deal",comm:"$16,000",ball:"me",flag:"🔄"},
-      {id:18,deal:"619 Jefferson — Bob Belk HVP Sale",type:"Sale",action:"Review Financials",comm:"$18,000",ball:"me",flag:"📊"},
-      {id:19,deal:"Steve — Denham / 51494 La Hwy 16",type:"Sale",action:"Listing pitch",comm:"TBD",ball:"me",flag:"📣"}
+    active:{label:"🔥 ACTIVE DEALS",color:"#fdba74",total:"$479,500+",columns:["#","Deal Ref","Deal","Type","Action","$$","Ball"],rows:[
+      {id:42,deal:"Melissa Stockstill — LA Blue (Separate Deal)",dealRef:"",type:"Lease",action:"CALL TODAY — Departs company 3/13.",comm:"TBD",ball:"me",flag:"🚨"},
+      {id:13,deal:"LA Blue Monroe Portfolio",dealRef:"",type:"Lease",action:"Activate all platforms / Get with Ashley",comm:"$300,000",ball:"me",flag:"🔥"},
+      {id:14,deal:"RaceTrac Land Acquisition",dealRef:"RaceTrac Land",type:"Land",action:"Awaiting DOTD Approval",comm:"$48,000",ball:"them",flag:"⏳"},
+      {id:15,deal:"1301 Hudson Lane — Monroe",dealRef:"",type:"Sale",action:"Offering memo delivered — Push Sam for next action",comm:"$31,500",ball:"them",flag:"📋"},
+      {id:16,deal:"Ashley Furniture Portfolio",dealRef:"",type:"Lease",action:"Kimberly Boger — Get new DSG Contact",comm:"$50,000",ball:"me",flag:"📞"},
+      {id:17,deal:"Ashley Furniture — Dutch Brothers Outparcel",dealRef:"",type:"Sale",action:"Work deal",comm:"$16,000",ball:"me",flag:"🔄"},
+      {id:18,deal:"619 Jefferson — Bob Belk HVP Sale",dealRef:"",type:"Sale",action:"Review Financials",comm:"$18,000",ball:"me",flag:"📊"},
+      {id:19,deal:"Steve — Denham / 51494 La Hwy 16",dealRef:"",type:"Sale",action:"Listing pitch",comm:"TBD",ball:"me",flag:"📣"}
     ]},
-    contract:{label:"📝 UNDER CONTRACT",color:"#6ee7b7",total:"$38,287",columns:["#","Deal","Type","Status","$$","Ball","Timeline","Flag"],rows:[
+    contract:{label:"📝 UNDER CONTRACT",color:"#6ee7b7",total:"$38,287",columns:["#","Deal","Type","Status","$$","Ball","Timeline"],rows:[
       {id:25,deal:"Scenic Hwy — Burnhams",type:"Sale",status:"In Closing Period — closes by 5/8/26",comm:"$8,437",ball:"other",flag:"📅",timeline:"60 days"},
       {id:45,deal:"GVI — Dutch Brothers",type:"Sale",status:"Under Contract — Need Pertinent Dates, Deposit & Deliver DD Material",comm:"$16,650",ball:"me",flag:"🔥",timeline:"TBD"},
       {id:46,deal:"Donnie Braud — 4950 Government St",type:"Sale",status:"Under Contract — Need Pertinent Dates, Deposit & Deliver DD Material",comm:"$13,200",ball:"me",flag:"📋",timeline:"TBD"}
     ]},
-    hvp:{label:"⭐ HVP DEALS",color:"#fbbf24",total:"",columns:["#","Person","Deal","Action","$$","Ball","Flag"],rows:[
+    hvp:{label:"⭐ HVP DEALS",color:"#fbbf24",total:"",columns:["#","Person","Deal","Action","$$"],rows:[
       {id:50,person:"Bob Belk",deal:"619 Jefferson — Bob Belk HVP Sale",action:"Review Financials",comm:"$18,000",ball:"me",flag:"📊"}
     ]},
     offbook:{label:"🟣 OFF BOOK / PERSONAL PROPERTY",color:"#f0abfc",total:"",columns:["#","Item","Action","Flag"],rows:[
