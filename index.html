@@ -54,8 +54,8 @@ td{padding:8px 10px;vertical-align:middle;word-break:break-word;overflow-wrap:br
 td.comm{color:#4ade80;font-weight:700;white-space:nowrap;min-width:90px}
 td.comm .editable{white-space:nowrap}
 td.flag-cell{font-size:22px}
-/* FIX: editable cells always visible, not just on hover */
-.editable{display:inline-block;min-width:20px;min-height:18px;border-radius:3px;padding:2px 4px;cursor:text;outline:none;border:1px solid #2a2a2a;background:transparent;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
+/* FIX #1: editable cells INVISIBLE until clicked/focused */
+.editable{display:inline-block;min-width:20px;min-height:18px;border-radius:3px;padding:2px 4px;cursor:text;outline:none;border:1px solid transparent;background:transparent;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word}
 .editable:hover{background:#1a1a1a;border-color:#444}
 .editable:focus{background:#1c1c1c;border-color:#f59e0b}
 /* Deal name never truncates */
@@ -161,7 +161,7 @@ select.section-deal-sel{background:#1a1a1a;color:#c4b5fd;border:1px solid #3d2a6
   <div class="subtitle">
     <span id="sync-status" class="sync ok">● Live</span>
     &nbsp;|&nbsp; Big Matt &nbsp;|&nbsp; 75% Split &nbsp;|&nbsp;
-    <span id="last-updated">Updated: 3/15/26</span>
+    <span id="last-updated">Updated: 3/16/26</span>
     <button class="save-btn" onclick="forceSave()">💾 Save</button>
   </div>
   <hr>
@@ -203,10 +203,35 @@ function onCommBlur(el){
   var id=el.dataset.ecid;
   if(ecSave[id])ecSave[id](el.innerText.trim());
 }
-function ec(sid,val,color,onSave,extra){ecSave[sid]=onSave;return'<span class="editable" contenteditable="true" style="color:'+color+(extra?';'+extra:'')+'" data-ecid="'+sid+'" onblur="ecBlur(this)" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();this.blur();}" onclick="event.stopPropagation()">'+esc(val)+'</span>';}
-function ecComm(sid,val,onSave){ecSave[sid]=onSave;return'<span class="editable" contenteditable="true" style="color:#4ade80;white-space:nowrap" data-ecid="'+sid+'" onblur="onCommBlur(this)" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();this.blur();}" onclick="event.stopPropagation()">'+esc(val)+'</span>';}
+
+// FIX #2: Tab key moves to the next editable cell to the right
+function handleEditableKeydown(event){
+  if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();event.target.blur();return;}
+  if(event.key==='Tab'){
+    event.preventDefault();
+    event.target.blur();
+    // Find the next editable cell in the same row
+    var td=event.target.closest('td');
+    if(!td)return;
+    var tr=td.closest('tr');
+    if(!tr)return;
+    var tds=Array.from(tr.querySelectorAll('td'));
+    var startIdx=tds.indexOf(td);
+    if(startIdx===-1)return;
+    var direction=event.shiftKey?-1:1;
+    for(var i=startIdx+direction;i>=0&&i<tds.length;i+=direction){
+      var ed=tds[i].querySelector('.editable, [contenteditable="true"]');
+      if(ed){ed.focus();var range=document.createRange();range.selectNodeContents(ed);var sel=window.getSelection();sel.removeAllRanges();sel.addRange(range);return;}
+      var sel2=tds[i].querySelector('select');
+      if(sel2){sel2.focus();return;}
+    }
+  }
+}
+
+function ec(sid,val,color,onSave,extra){ecSave[sid]=onSave;return'<span class="editable" contenteditable="true" style="color:'+color+(extra?';'+extra:'')+'" data-ecid="'+sid+'" onblur="ecBlur(this)" onkeydown="handleEditableKeydown(event)" onclick="event.stopPropagation()">'+esc(val)+'</span>';}
+function ecComm(sid,val,onSave){ecSave[sid]=onSave;return'<span class="editable" contenteditable="true" style="color:#4ade80;white-space:nowrap" data-ecid="'+sid+'" onblur="onCommBlur(this)" onkeydown="handleEditableKeydown(event)" onclick="event.stopPropagation()">'+esc(val)+'</span>';}
 // Deal name editable — never truncates
-function ecDealName(sid,val,color,onSave){ecSave[sid]=onSave;return'<span class="editable deal-name-editable" contenteditable="true" style="color:'+color+'" data-ecid="'+sid+'" onblur="ecBlur(this)" onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();this.blur();}" onclick="event.stopPropagation()">'+esc(val)+'</span>';}
+function ecDealName(sid,val,color,onSave){ecSave[sid]=onSave;return'<span class="editable deal-name-editable" contenteditable="true" style="color:'+color+'" data-ecid="'+sid+'" onblur="ecBlur(this)" onkeydown="handleEditableKeydown(event)" onclick="event.stopPropagation()">'+esc(val)+'</span>';}
 function ecBlur(el){var id=el.dataset.ecid;if(ecSave[id])ecSave[id](el.innerText.trim());}
 
 // Deal type dropdown — no Ball column
@@ -215,11 +240,28 @@ function rDealTypeSelect(key,rowId,cur){
   return'<select class="deal-type-select" onchange="(function(v){upd(function(s){var r=s.sections[\''+key+'\'].rows.find(function(x){return x.id==='+rowId+'});if(r)r.type=v;})})(this.value)">'+opts+'</select>';
 }
 
-// Deal dropdown — sorted A-Z
+// FIX #4: Deal dropdown — save value BEFORE re-render so it sticks
 function rSectionDealDrop(key,rowId,cur){
   var sorted=(S.deals||[]).slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
   var opts=sorted.map(function(d){return'<option value="'+esc(d.name)+'" '+(cur===d.name?'selected':'')+'>'+esc(d.name)+'</option>';}).join('');
-  return'<select class="section-deal-sel" onchange="(function(v){if(v===\'__new__\'){var n=prompt(\'New deal name:\');if(n&&n.trim()){if(!S.deals)S.deals=[];S.deals.push({id:uid(),name:n.trim(),expanded:false,sqft:\'\',price:\'\',contact:\'\',dealType:\'\',status:\'Active\',commission:\'\',notes:\'\',keyDates:\'\'});upd(function(s){var r=s.sections[\''+key+'\'].rows.find(function(x){return x.id==='+rowId+'});if(r)r.deal=n.trim();});}else renderOnly();}else upd(function(s){var r=s.sections[\''+key+'\'].rows.find(function(x){return x.id==='+rowId+'});if(r)r.deal=v;})})(this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New Deal</option></select>';
+  return'<select class="section-deal-sel" data-key="'+key+'" data-rowid="'+rowId+'" onchange="handleSectionDealChange(this)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New Deal</option></select>';
+}
+function handleSectionDealChange(sel){
+  var key=sel.dataset.key,rowId=parseInt(sel.dataset.rowid),val=sel.value;
+  if(val==='__new__'){
+    var n=prompt('New deal name:');
+    if(n&&n.trim()){
+      if(!S.deals)S.deals=[];
+      S.deals.push({id:uid(),name:n.trim(),expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''});
+      var r=S.sections[key].rows.find(function(x){return x.id===rowId;});
+      if(r){r.deal=n.trim();r.dealRef=n.trim();}
+      renderOnly();scheduleSave();
+    }else{renderOnly();}
+  }else{
+    var r=S.sections[key].rows.find(function(x){return x.id===rowId;});
+    if(r){r.deal=val;r.dealRef=val;}
+    renderOnly();scheduleSave();
+  }
 }
 
 function ep(sid,cur,onSelect){epRegistry[sid]=onSelect;return'<button class="emoji-btn" onclick="epToggle(\''+sid+'\',event)">'+esc(cur||'➕')+'</button>';}
@@ -247,8 +289,9 @@ async function loadFromCloud(){
       if(!S.tomorrowPlan)S.tomorrowPlan=[];
       if(!S.lastBattleDate)S.lastBattleDate=todayStr();
       if(S.completedLog)completedLog=S.completedLog;
-      // Load win log
-      if(S.winLog)winLog=S.winLog;
+      // FIX #8: Load win log from cloud — ensure it populates the local variable
+      if(S.winLog&&Array.isArray(S.winLog))winLog=S.winLog;
+      else{S.winLog=[];winLog=[];}
       if(S.sections)Object.keys(S.sections).forEach(function(k){var sec=S.sections[k];if(sec.columns)sec.columns=sec.columns.map(function(c){return c==='Comm'?'$$':c;});});
       if(!S.closedDeals)S.closedDeals=[];
       if(!S.deals)S.deals=[];
@@ -257,12 +300,9 @@ async function loadFromCloud(){
       if(S.tomorrowPlan)S.tomorrowPlan.forEach(function(b){if(!b.comm)b.comm='';});
       // MIGRATION: add dealRef to active rows
       if(S.sections&&S.sections.active)S.sections.active.rows.forEach(function(r){if(!r.dealRef)r.dealRef='';});
-      // MIGRATION: add Type col to active if missing — REMOVE Ball col
+      // FIX #5: Remove Type column from Active Deals
       if(S.sections&&S.sections.active){
-        // Remove Ball column
-        S.sections.active.columns=S.sections.active.columns.filter(function(c){return c!=='Ball';});
-        if(S.sections.active.columns.indexOf('Type')===-1){var ai=S.sections.active.columns.indexOf('$$');if(ai===-1)ai=2;S.sections.active.columns.splice(ai,0,'Type');S.sections.active.rows.forEach(function(r){if(!r.type)r.type='';});}
-        // Remove Deal Ref col (we handle it inline now) — keep if needed
+        S.sections.active.columns=S.sections.active.columns.filter(function(c){return c!=='Ball'&&c!=='Type';});
       }
       // MIGRATION: Under Contract — remove Type col
       if(S.sections&&S.sections.contract){
@@ -282,7 +322,7 @@ async function loadFromCloud(){
       if(S.sections&&S.sections.ehvp)S.sections.ehvp.rows.forEach(function(r){if(!r.deal)r.deal='';});
       if(S.sections&&S.sections.pitch)delete S.sections.pitch;
       if(S.sections&&S.sections.pending)delete S.sections.pending;
-      // Ensure winLog exists
+      // Ensure winLog exists on S
       if(!S.winLog)S.winLog=[];
       setSyncStatus('ok');
     }else{await saveToCloud();}
@@ -316,13 +356,12 @@ function toggleBattle(id){
 function chooseComplete(){if(!actionModal)return;var id=actionModal.id,action=actionModal.action;completedLog.push({id:uid(),action:action,comm:actionModal.comm||'',completedAt:new Date().toISOString()});upd(function(s){s.battlePlan=s.battlePlan.filter(function(x){return x.id!==id;});});actionModal=null;renderOnly();scheduleSave();}
 function chooseFollowUp(){if(!actionModal)return;actionModal={step:'followup',id:actionModal.id,action:actionModal.action,comm:actionModal.comm||''};renderOnly();setTimeout(function(){var inp=document.getElementById('followup-text-input');if(inp)inp.focus();},50);}
 
-// NEW: Move Battle Plan row to Under Contract
+// Move Battle Plan row to Under Contract
 function chooseMoveToContract(){
   if(!actionModal)return;
   var id=actionModal.id;
   var item=S.battlePlan.find(function(x){return x.id===id;});
   if(!item)return;
-  // Build a new contract row
   var newRow={
     id:uid(),
     deal:item.deal||item.action||'',
@@ -333,10 +372,8 @@ function chooseMoveToContract(){
     done:false
   };
   upd(function(s){
-    // Add to Under Contract
     if(!s.sections.contract)s.sections.contract={label:'📝 UNDER CONTRACT',color:'#6ee7b7',total:'',columns:['#','Deal','Status','$$','Timeline'],rows:[]};
     s.sections.contract.rows.push(newRow);
-    // Remove from Battle Plan
     s.battlePlan=s.battlePlan.filter(function(x){return x.id!==id;});
   });
   actionModal=null;
@@ -359,7 +396,6 @@ function rActionModal(){
 // ---- SECTION MODALS ----
 function toggleSectionRow(key,id){
   if(key==='personal'){
-    // Personal gets its own popup
     var row=S.sections[key].rows.find(function(r){return r.id===id;});
     if(!row)return;
     if(row.done){upd(function(s){var r=s.sections[key].rows.find(function(x){return x.id===id;});if(r)r.done=false;});return;}
@@ -389,7 +425,6 @@ function personalDelete(){
 function personalCreateNew(){
   if(!personalModal)return;
   var key=personalModal.key,id=personalModal.id,action=personalModal.action;
-  // Log as done, mark done
   completedLog.push({id:uid(),action:action,comm:'',completedAt:new Date().toISOString()});
   upd(function(s){var r=s.sections[key].rows.find(function(x){return x.id===id;});if(r)r.done=true;});
   personalModal=null;renderOnly();scheduleSave();
@@ -402,23 +437,31 @@ function rPersonalModal(){
 
 function collectPayment(key,rowId){var row=S.sections[key]&&S.sections[key].rows.find(function(r){return r.id===rowId;});if(!row)return;if(!confirm('Mark as COLLECTED?\n\n'+(row.deal||row.item||'This item')+' — '+(row.comm||'')))return;if(!S.closedDeals)S.closedDeals=[];S.closedDeals.push({id:uid(),deal:row.deal||row.item||'',person:row.person||'',comm:row.comm||'',action:row.action||'',collectedAt:new Date().toISOString()});upd(function(s){s.sections[key].rows=s.sections[key].rows.filter(function(r){return r.id!==rowId;});});scheduleSave();}
 
+// FIX #6 & #7: Render order changed:
+// Today's Blocks → Money Movers → Battle Plan → Under Contract → then remaining sections
 function renderOnly(){
   var root=document.getElementById('root');
   if(!root)return;
-  root.innerHTML=rTop3()+rBattle()+rTimeBlocks()+rDeals()+
-    (function(){
-      var ORDER=['ehvp','collect','active','contract','hvp','offbook','personal','farm','schedule'];
-      var keys=ORDER.filter(function(k){return S.sections[k];});
-      Object.keys(S.sections).forEach(function(k){if(keys.indexOf(k)===-1)keys.push(k);});
-      return keys.map(rSection).join('');
-    })()+
+  // FIX #7: Section order — Under Contract right after Battle Plan (before other sections)
+  var sectionOrder=['ehvp','collect','active','hvp','offbook','personal','farm','schedule'];
+  var keys=sectionOrder.filter(function(k){return S.sections[k];});
+  Object.keys(S.sections).forEach(function(k){if(keys.indexOf(k)===-1&&k!=='contract')keys.push(k);});
+
+  root.innerHTML=
+    rTimeBlocks()+   /* FIX #6: Today's Blocks at the very top */
+    rTop3()+         /* Money Movers second */
+    rBattle()+       /* Battle Plan third */
+    (S.sections.contract?rSection('contract'):'')+  /* FIX #7: Under Contract right after Battle Plan */
+    keys.map(rSection).join('')+
+    rDeals()+
     rPipeline()+rClosedDeals()+rWinLog()+rCompletedLog()+
     '<div class="footer">🎖️ THE WAR ROOM &nbsp;|&nbsp; Big Matt &nbsp;|&nbsp; Saurage Rotenberg CRE &nbsp;|&nbsp; '+S.lastUpdated+'</div>'+
     rModal()+rActionModal()+rSectionActionModal()+rPersonalModal()+rBlockModal();
 }
 
 // ---- TOP 3 (Money Movers) ----
-function rTop3DealDrop(itemId,cur){if(!S.deals)S.deals=[];var sorted=(S.deals||[]).slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});var opts=sorted.map(function(d){return'<option value="'+esc(d.name)+'" '+(cur===d.name?'selected':'')+'>'+esc(d.name)+'</option>';}).join('');return'<select style="background:#111;color:#7dd3fc;border:1px solid #334;border-radius:4px;font-size:13px;padding:2px 4px;min-width:90px;max-width:160px;" onchange="t3DealChange('+itemId+',this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New</option></select>';}
+// FIX #3: Deal tag text no longer truncated — removed max-width constraint on deal name display
+function rTop3DealDrop(itemId,cur){if(!S.deals)S.deals=[];var sorted=(S.deals||[]).slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});var opts=sorted.map(function(d){return'<option value="'+esc(d.name)+'" '+(cur===d.name?'selected':'')+'>'+esc(d.name)+'</option>';}).join('');return'<select style="background:#111;color:#7dd3fc;border:1px solid #334;border-radius:4px;font-size:13px;padding:2px 4px;min-width:90px;" onchange="t3DealChange('+itemId+',this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New</option></select>';}
 function t3DealChange(itemId,val){if(val==='__new__'){var n=prompt('New Deal ID:');if(!n||!n.trim()){renderOnly();return;}var t=n.trim();if(!S.deals)S.deals=[];if(!S.deals.find(function(d){return d.name===t;}))S.deals.push({id:uid(),name:t,expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''});upd(function(s){var item=s.top3.find(function(x){return x.id===itemId;});if(item)item.dealRef=t;});}else upd(function(s){var item=s.top3.find(function(x){return x.id===itemId;});if(item)item.dealRef=val;});}
 
 function rTop3(){
@@ -438,7 +481,7 @@ function rTop3(){
   return'<div class="top3"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="section-title" style="color:#f59e0b">💰 MONEY MOVERS</div><button class="add-btn" style="color:#f59e0b;border:1px solid #f59e0b" onclick="upd(function(s){s.top3.push({id:uid(),flag:\'🔥\',deal:\'New Deal\',why:\'Why this matters\',comm:\'TBD\',dealRef:\'\'})})">➕ Add</button></div>'+rows+'</div>';
 }
 
-// ---- BATTLE PLAN ---- (Person col and Deal col SWAPPED: Deal first, then Person)
+// ---- BATTLE PLAN ----
 function rBpDealDrop(bpId,cur){
   if(!S.deals)S.deals=[];
   var sorted=(S.deals||[]).slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
@@ -453,7 +496,6 @@ function rBattle(){
     return'<tr class="'+g+'" data-drag-row data-drag-lt="battle" data-drag-key="battle" data-drag-idx="'+i+'" style="'+(item.done?'opacity:.5':'')+'">'+
       '<td style="width:22px"><span class="drag-handle" onmousedown="startDrag(event,\'battle\',\'battle\','+i+')" ontouchstart="startDrag(event,\'battle\',\'battle\','+i+')">⠿</span></td>'+
       '<td style="width:28px"><span class="check" style="font-size:18px" onclick="toggleBattle('+item.id+')">'+(item.done?'✅':'⬜')+'</span></td>'+
-      // SWAPPED: Deal first, then Person
       '<td>'+rBpDealDrop(item.id,item.deal||'')+'</td>'+
       '<td>'+ec('bpp'+item.id,item.person||'','#f59e0b',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.person=v;})})+'</td>'+
       '<td style="min-width:160px"><span style="text-decoration:'+(item.done?'line-through':'none')+'">'+ec('bpa'+item.id,item.action,'#e5e5e5',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.action=v;})})+'</span></td>'+
@@ -468,7 +510,6 @@ function rBattle(){
         return'<div class="tomorrow-queue-item"><span>'+(item.person?'<span style="color:#f59e0b">'+esc(item.person)+'</span> — ':'')+esc(item.action)+'</span><button class="restore-btn" onclick="removeTomorrow('+item.id+')">↩ Move to Today</button></div>';
       }).join('')+'</div>';
   }
-  // Header: Deal col first, then Person col
   return'<div class="battle"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="section-title" style="color:#60a5fa">🔥 BATTLE PLAN</div><button class="add-btn" style="color:#60a5fa;border:1px solid #60a5fa" onclick="upd(function(s){s.battlePlan.push({id:uid(),done:false,person:\'\',deal:\'\',action:\'New item\',comm:\'\'})})">➕ Add</button></div><div class="table-wrap"><table><thead><tr><th style="width:22px"></th><th style="width:28px"></th><th>Deal</th><th>Person</th><th>Action</th><th>Commission</th><th style="width:22px"></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+tq+'</div>';
 }
 
@@ -489,7 +530,6 @@ function rDealDetail(deal){var fields=[{key:'sqft',label:'SqFt',color:'#e5e5e5',
 function rDeals(){
   if(!S.deals)S.deals=[];
   var isOpen=!dealsCollapsed;
-  // Sort deals A-Z
   var sortedDeals=S.deals.slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
   var dr=sortedDeals.map(function(deal){
     var dp=deal.expanded?rDealDetail(deal):'';
@@ -501,18 +541,21 @@ function rDeals(){
 // ---- SECTION RENDERING ----
 function rSection(key){
   var sec=S.sections[key],open=!collapsed[key];
-  return'<div class="section"><div class="section-header" onclick="toggleSection(\''+key+'\')"><span class="section-label" style="color:'+sec.color+'">'+sec.label+'</span><div style="display:flex;align-items:center;gap:8px">'+(sec.total?'<span class="section-total">'+sec.total+'</span>':'')+'<span class="chevron">'+(open?'▼':'▶')+'</span></div></div>'+(open?'<div><div class="table-wrap"><table><thead><tr><th class="drag-col"></th><th class="del-col">✕</th><th style="width:28px"></th>'+sec.columns.map(function(c){return'<th>'+(c==='$$'?'Commission':c)+'</th>';}).join('')+'</tr></thead><tbody>'+sec.rows.map(function(row,i){return rRow(key,row,i,sec);}).join('')+'</tbody></table></div><div style="margin-top:6px;padding-left:2px"><button class="add-btn" style="color:'+sec.color+';border:1px solid '+sec.color+'" onclick="openAddModal(\''+key+'\')">'+(key==='schedule'?'➕ Add Event':'➕ Add Row')+'</button></div></div>':'')+'</div>';
+  // FIX #5: Active Deals — filter out Type from columns at render time too
+  var cols=sec.columns;
+  if(key==='active')cols=cols.filter(function(c){return c!=='Type';});
+  return'<div class="section"><div class="section-header" onclick="toggleSection(\''+key+'\')"><span class="section-label" style="color:'+sec.color+'">'+sec.label+'</span><div style="display:flex;align-items:center;gap:8px">'+(sec.total?'<span class="section-total">'+sec.total+'</span>':'')+'<span class="chevron">'+(open?'▼':'▶')+'</span></div></div>'+(open?'<div><div class="table-wrap"><table><thead><tr><th class="drag-col"></th><th class="del-col">✕</th><th style="width:28px"></th>'+cols.map(function(c){return'<th>'+(c==='$$'?'Commission':c)+'</th>';}).join('')+'</tr></thead><tbody>'+sec.rows.map(function(row,i){return rRow(key,row,i,sec,cols);}).join('')+'</tbody></table></div><div style="margin-top:6px;padding-left:2px"><button class="add-btn" style="color:'+sec.color+';border:1px solid '+sec.color+'" onclick="openAddModal(\''+key+'\')">'+(key==='schedule'?'➕ Add Event':'➕ Add Row')+'</button></div></div>':'')+'</div>';
 }
 
-function rRow(key,row,i,sec){
+function rRow(key,row,i,sec,cols){
+  if(!cols)cols=sec.columns;
   var g=(drag&&drag.lt==='section'&&drag.key===key&&drag.curIdx===i)?'drag-ghost':'';
-  var cells=sec.columns.map(function(col){
+  var cells=cols.map(function(col){
     var f=col.toLowerCase();
     if(col==='#')return'<td style="color:#555;font-size:14px">'+(i+1)+'</td>';
-    // No Ball column rendered (removed globally)
     if(col==='Ball')return'';
-    if(col==='$$')return'<td class="comm" style="white-space:nowrap">'+ecComm(key+'c'+row.id,row.comm,function(v){var k=key,id=row.id;upd(function(s){var r=s.sections[k].rows.find(function(x){return x.id===id;});if(r)r.comm=v;})})+'</td>';
     if(col==='Type')return'<td>'+rDealTypeSelect(key,row.id,row.type||'')+'</td>';
+    if(col==='$$')return'<td class="comm" style="white-space:nowrap">'+ecComm(key+'c'+row.id,row.comm,function(v){var k=key,id=row.id;upd(function(s){var r=s.sections[k].rows.find(function(x){return x.id===id;});if(r)r.comm=v;})})+'</td>';
     if(col==='Deal Ref')return'<td>'+rSectionDealDrop(key,row.id,row.dealRef||'')+'</td>';
     if(col==='Flag'){
       var pBtn=(key==='schedule')?'<button style="background:none;border:1px solid '+(row.protect?'#f59e0b':'#333')+';border-radius:4px;cursor:pointer;padding:1px 4px;font-size:14px;margin-left:4px;" title="'+(row.protect?'Protected':'Click to protect')+'" onclick="upd(function(s){var r=s.sections.schedule.rows.find(function(x){return x.id==='+row.id+'});if(r)r.protect=!r.protect;})">'+(row.protect?'🔒':'🔓')+'</button>':'';
@@ -543,7 +586,7 @@ function submitScheduleModal(){
     var dy='';if(dyEl&&dyEl.value)dy=dyEl.value;else if(dEl&&dEl.value){var days2=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];dy=days2[new Date(dEl.value+'T12:00:00').getDay()];}
     row.date=dv;row.day=dy;row.time=tv;row.event=evEl?evEl.value:'';row.flag='📅';row.protect=prEl?prEl.checked:false;
   }else{
-    sec.columns.filter(function(c){return c!=='#'&&c!=='Ball';}).forEach(function(col){
+    sec.columns.filter(function(c){return c!=='#'&&c!=='Ball'&&c!=='Type';}).forEach(function(col){
       var f=col.toLowerCase(),el=document.getElementById('mf-'+f);
       if(el)row[f]=el.value||'';
     });
@@ -559,9 +602,8 @@ function rModal(){
   if(isSch){
     fields='<label>Date</label><input type="date" id="mf-date" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;"><label>Day</label><input id="mf-day" placeholder="Mon / Tue / etc" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;"><label>Time</label><input type="time" id="mf-time" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;"><label>Event</label><input id="mf-event" placeholder="Event description" style="background:#1a1a1a;color:#e5e5e5;border:1px solid #333;border-radius:4px;padding:5px 8px;width:100%;font-size:15px;margin-bottom:10px;"><label style="display:flex;align-items:center;gap:8px;margin-top:4px;font-size:13px;color:#f59e0b"><input type="checkbox" id="mf-protect"> 🔒 Protect from auto-delete</label>';
   }else{
-    fields=sec.columns.filter(function(c){return c!=='#'&&c!=='Ball';}).map(function(col){
+    fields=sec.columns.filter(function(c){return c!=='#'&&c!=='Ball'&&c!=='Type';}).map(function(col){
       var f=col.toLowerCase();
-      if(col==='Type')return'<label>Deal Type</label><select id="mf-type"><option value="">— type —</option>'+['Lease','Sale','Land','Investment','Renewal','Expansion','Assignment','Sublease','Referral'].map(function(t){return'<option value="'+t+'">'+t+'</option>';}).join('')+'</select>';
       return'<label>'+col+'</label><input id="mf-'+f+'" placeholder="'+col+'">';
     }).join('');
   }
@@ -575,6 +617,7 @@ function rPipeline(){var p=S.pipeline;return'<div class="pipeline"><div class="s
 function rClosedDeals(){if(!S.closedDeals||!S.closedDeals.length)return'';var total=S.closedDeals.length,isOpen=!closedDealsCollapsed;var tc=S.closedDeals.reduce(function(sum,d){var v=parseFloat(String(d.comm||'').replace(/[^0-9.]/g,''))||0;return sum+v;},0);var cs=tc>0?' — $'+Math.round(tc).toLocaleString('en-US')+' collected':'';var body='';if(isOpen)body='<div style="padding:12px 16px">'+S.closedDeals.slice().reverse().map(function(d){return'<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;margin-bottom:4px;background:#0d0d0d;border-radius:6px;border:1px solid #1a3a1a;"><span style="font-size:20px">💰</span><div style="flex:1;min-width:0"><div style="font-weight:700;color:#4ade80;font-size:14px">'+esc(d.deal||d.person||'Deal')+'</div>'+(d.person?'<div style="font-size:12px;color:#f59e0b">'+esc(d.person)+'</div>':'')+(d.comm?'<div style="font-size:13px;color:#4ade80;font-weight:700">'+esc(d.comm)+'</div>':'')+'</div><div style="font-size:11px;color:#444;white-space:nowrap">'+formatTime(d.collectedAt)+'<br>'+formatDateGroup(d.collectedAt)+'</div></div>';}).join('')+'</div>';return'<div style="margin-top:24px;background:#080808;border:1px solid #166534;border-radius:10px;overflow:hidden"><div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;background:#0a1a0a;border-bottom:1px solid #1a3a1a" onclick="closedDealsCollapsed=!closedDealsCollapsed;renderOnly()"><div style="display:flex;align-items:center;gap:10px"><span style="font-family:Bebas Neue,Impact,sans-serif;font-size:22px;letter-spacing:2px;color:#4ade80">💰 CLOSED DEALS — COLLECTED</span><span style="font-size:12px;background:#0a2a0a;border:1px solid #166534;border-radius:6px;padding:2px 10px;color:#4ade80;font-weight:700">'+total+' deals'+cs+'</span></div><span style="color:#4ade80;font-size:13px">'+(isOpen?'▼':'▶')+'</span></div>'+body+'</div>';}
 
 // ---- WIN LOG (all-time closed transactions) ----
+// FIX #8: Win Log now reads from the `winLog` variable which is properly synced with Supabase
 function rWinLog(){
   var isOpen=!winLogCollapsed;
   var total=winLog.length;
@@ -643,8 +686,7 @@ function rWinLogModal(){
 function rCompletedLog(){var total=completedLog.length,isOpen=!completedLogCollapsed,groups={},groupOrder=[];completedLog.slice().reverse().forEach(function(entry){var dk=formatDateGroup(entry.completedAt);if(!groups[dk]){groups[dk]=[];groupOrder.push(dk);}groups[dk].push(entry);});var bodyHtml='';if(!total)bodyHtml='<div class="completed-empty">No completed tasks yet. Crush something. ✅</div>';else bodyHtml=groupOrder.map(function(dk){return'<div class="completed-group"><div class="completed-group-date">'+dk+'</div>'+groups[dk].map(function(entry){return'<div class="completed-item"><div class="completed-item-text">✅ '+esc(entry.action)+'</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0"><span class="completed-item-time">'+formatTime(entry.completedAt)+'</span><button class="completed-undo" onclick="undoCompleted('+entry.id+')">↩ Undo</button></div></div>';}).join('')+'</div>';}).join('');return'<div class="completed-log"><div class="completed-log-header" onclick="completedLogCollapsed=!completedLogCollapsed;renderOnly()"><div style="display:flex;align-items:center;gap:10px"><span class="completed-log-title">✅ COMPLETED TASKS LOG</span>'+(total?'<span class="completed-log-count">'+total+' total</span>':'')+'</div><span class="chevron" style="color:#4ade80">'+(isOpen?'▼':'▶')+'</span></div>'+(isOpen?'<div class="completed-log-body">'+bodyHtml+'</div>':'')+'</div>';}
 
 var DEFAULT={
-  lastUpdated:"3/15/26",lastBattleDate:"",tomorrowPlan:[],winLog:[
-    // Pre-loading the 1 recovered transaction
+  lastUpdated:"3/16/26",lastBattleDate:"",tomorrowPlan:[],winLog:[
     {id:1001,address:"619 Jefferson Hwy. Suite 1D",volume:"$48,649.35",pct:"5.00%",gross:"$1,824.35",comm:"",closedAt:"2026-03-15T00:00:00.000Z"}
   ],
   top3:[
@@ -679,7 +721,7 @@ var DEFAULT={
       {id:11,deal:"LA Blue Lease — Worley Inc.",action:"$30k due NOW",comm:"$60,000",flag:"🚨"},
       {id:12,deal:"619 Jefferson — Bob Belk HVP",action:"Lease closed — collect",comm:"$1,600",flag:"🚨"}
     ]},
-    active:{label:"🔥 ACTIVE DEALS",color:"#fdba74",total:"$479,500+",columns:["#","Deal","Type","Action","$$"],rows:[
+    active:{label:"🔥 ACTIVE DEALS",color:"#fdba74",total:"$479,500+",columns:["#","Deal","Action","$$"],rows:[
       {id:42,deal:"Melissa Stockstill — LA Blue (Separate Deal)",dealRef:"",type:"Lease",action:"CALL TODAY — Departs company 3/13.",comm:"TBD",flag:"🚨"},
       {id:13,deal:"LA Blue Monroe Portfolio",dealRef:"",type:"Lease",action:"Activate all platforms / Get with Ashley",comm:"$300,000",flag:"🔥"},
       {id:14,deal:"RaceTrac Land Acquisition",dealRef:"RaceTrac Land",type:"Land",action:"Awaiting DOTD Approval",comm:"$48,000",flag:"⏳"},
@@ -736,7 +778,6 @@ S=JSON.parse(JSON.stringify(DEFAULT));
 var _ro=renderOnly;
 renderOnly=function(){
   _ro();
-  // Append win log modal if open
   if(winLogModalOpen){
     var root=document.getElementById('root');
     if(root)root.innerHTML+=rWinLogModal();
