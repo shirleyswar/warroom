@@ -42,7 +42,6 @@ body{background:var(--bg);color:var(--text);font-family:'Inter','Segoe UI',sans-
 
 /* HEADER */
 .header-wrap{display:flex;align-items:center;justify-content:center;gap:18px;margin-bottom:6px;flex-wrap:wrap}
-/* h1 replaced by SHIRLEY:RE header */
 .subtitle{text-align:center;color:var(--muted);font-size:14px;margin:4px 0 6px}
 .sr-tagline{text-align:center;font-size:10px;letter-spacing:4px;color:rgba(232,160,32,0.2);text-transform:uppercase;margin-bottom:6px;font-family:'Syne Mono',monospace}
 hr{border:none;border-top:1px solid var(--border);margin:8px 0 20px}
@@ -87,10 +86,8 @@ hr{border:none;border-top:1px solid var(--border);margin:8px 0 20px}
 .add-slot-btn{background:transparent;border:1px dashed rgba(167,139,250,0.3);border-radius:5px;padding:3px 10px;font-size:12px;cursor:pointer;font-weight:600;color:rgba(167,139,250,0.5);font-family:'Syne Mono',monospace}
 .add-slot-btn:hover{border-color:var(--purple);color:var(--purple)}
 
-/* PROJECT TAG */
-.tag-pill{font-size:11px;font-weight:700;padding:1px 7px;border-radius:10px;display:inline-block;white-space:nowrap;font-family:'Syne Mono',monospace;background:rgba(232,160,32,0.12);color:var(--gold2);border:1px solid rgba(232,160,32,0.25)}
-select.tag-select{background:rgba(232,160,32,0.08);color:var(--gold2);border:1px solid rgba(232,160,32,0.25);border-radius:10px;padding:1px 6px;font-size:11px;cursor:pointer;font-family:'Syne Mono',monospace;outline:none}
-select.tag-select:focus{border-color:var(--gold)}
+/* DEAL TAG PILL — single deal identifier */
+.deal-tag-pill{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;display:inline-block;white-space:nowrap;font-family:'Syne Mono',monospace;background:rgba(125,211,252,0.08);color:#7dd3fc;border:1px solid rgba(125,211,252,0.2)}
 
 /* DRAG */
 .drag-handle{color:rgba(122,138,143,0.4);font-size:18px;cursor:grab;padding:0 4px;flex-shrink:0;user-select:none;font-family:sans-serif}
@@ -291,13 +288,6 @@ var sb=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 var EMOJIS=['🚨','🔥','👑','💰','⚡','🔨','📞','📧','⏳','✅','❓','📝','🔄','📣','📊','⚖️','🏆','💸','⚠️','🎯'];
 var DEAL_TYPES=['','Lease','Sale','Land','Investment','Renewal','Expansion','Assignment','Sublease','Referral'];
 
-// Project tags — auto-built from S.deals names plus a few defaults
-function getProjectTags(){
-  var tags=['—'];
-  if(S&&S.deals)S.deals.forEach(function(d){if(d.name&&!tags.includes(d.name))tags.push(d.name);});
-  return tags;
-}
-
 var S=null,collapsed={},completedLog=[],winLog=[],completedLogCollapsed=false,winLogCollapsed=false,saveTimer=null,addModalKey=null,actionModal=null,sectionActionModal=null,personalModal=null,emojiTarget=null,epRegistry={},ecSave={},drag=null,dealsCollapsed=false,closedDealsCollapsed=false,blockModalOpen=false,blockSlot='AM';
 
 function parseTime12(s){if(!s)return null;var m=s.trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);if(!m)return null;var h=parseInt(m[1]),min=parseInt(m[2]),ap=m[3].toUpperCase();if(ap==='PM'&&h!==12)h+=12;if(ap==='AM'&&h===12)h=0;return h*60+min;}
@@ -359,19 +349,6 @@ function handleSectionDealChange(sel){
   }
 }
 
-// Project tag dropdown for battle plan items
-function rTagDrop(bpId,cur){
-  var tags=getProjectTags();
-  var opts=tags.map(function(t){return'<option value="'+esc(t)+'" '+(cur===t?'selected':'')+'>'+esc(t==='—'?'— project —':t)+'</option>';}).join('');
-  return'<select class="tag-select" onchange="bpTagChange('+bpId+',this.value)">'+opts+'</select>';
-}
-function bpTagChange(bpId,val){
-  upd(function(s){
-    var b=s.battlePlan.find(function(x){return x.id===bpId;});
-    if(b)b.tag=(val==='—'?'':val);
-  });
-}
-
 function ep(sid,cur,onSelect){epRegistry[sid]=onSelect;return'<button class="emoji-btn" onclick="epToggle(\''+sid+'\',event)">'+esc(cur||'➕')+'</button>';}
 function epToggle(id,e){e.stopPropagation();var ex=document.getElementById('emoji-drop');if(ex&&emojiTarget&&emojiTarget.id===id){ex.remove();emojiTarget=null;return;}if(ex)ex.remove();var btn=e.currentTarget,rect=btn.getBoundingClientRect();emojiTarget={id:id};var d=document.createElement('div');d.id='emoji-drop';d.style.left=rect.left+'px';d.style.top=(rect.bottom+6)+'px';d.onclick=function(ev){ev.stopPropagation();};d.innerHTML=EMOJIS.map(function(em){return'<div class="eopt" onclick="epPick(\''+em+'\',event)">'+em+'</div>';}).join('');document.body.appendChild(d);}
 function epPick(emoji,e){e.stopPropagation();if(emojiTarget&&epRegistry[emojiTarget.id])epRegistry[emojiTarget.id](emoji);var d=document.getElementById('emoji-drop');if(d)d.remove();emojiTarget=null;}
@@ -403,8 +380,21 @@ async function loadFromCloud(){
       if(!S.closedDeals)S.closedDeals=[];
       if(!S.deals)S.deals=[];
       S.deals.forEach(function(d){if(!d.contact&&d.owner)d.contact=d.owner;if(!d.contact)d.contact='';delete d.owner;delete d.tenant;if(!d.sqft)d.sqft='';if(!d.price)d.price='';if(!d.dealType)d.dealType='';if(!d.status)d.status='Active';if(!d.commission)d.commission='';if(!d.keyDates)d.keyDates='';if(!d.notes)d.notes='';});
-      if(S.battlePlan)S.battlePlan.forEach(function(b){if(!b.comm)b.comm='';if(!b.person)b.person='';if(!b.deal)b.deal='';if(!b.tag)b.tag='';});
-      if(S.tomorrowPlan)S.tomorrowPlan.forEach(function(b){if(!b.comm)b.comm='';if(!b.tag)b.tag='';});
+      // Normalize battlePlan — deal is the single project identifier
+      if(S.battlePlan)S.battlePlan.forEach(function(b){
+        if(!b.comm)b.comm='';
+        if(!b.person)b.person='';
+        // Migrate: if no deal but has tag, promote tag -> deal
+        if(!b.deal&&b.tag)b.deal=b.tag;
+        if(!b.deal)b.deal='';
+        delete b.tag; // tag field retired
+      });
+      if(S.tomorrowPlan)S.tomorrowPlan.forEach(function(b){
+        if(!b.comm)b.comm='';
+        if(!b.deal&&b.tag)b.deal=b.tag;
+        if(!b.deal)b.deal='';
+        delete b.tag;
+      });
       if(S.sections&&S.sections.active)S.sections.active.rows.forEach(function(r){if(!r.dealRef)r.dealRef='';});
       if(S.sections&&S.sections.active){S.sections.active.columns=S.sections.active.columns.filter(function(c){return c!=='Ball'&&c!=='Type';});}
       if(S.sections&&S.sections.contract){S.sections.contract.columns=S.sections.contract.columns.filter(function(c){return c!=='Type'&&c!=='Ball';});}
@@ -441,11 +431,11 @@ function toggleBattle(id){
   var item=S.battlePlan.find(function(b){return b.id===id;});
   if(!item)return;
   if(item.done){upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.done=false;});return;}
-  actionModal={step:'choose',id:id,action:item.action,comm:item.comm||'',tag:item.tag||''};
+  actionModal={step:'choose',id:id,action:item.action,comm:item.comm||'',deal:item.deal||''};
   renderOnly();
 }
 function chooseComplete(){if(!actionModal)return;var id=actionModal.id,action=actionModal.action;completedLog.push({id:uid(),action:action,comm:actionModal.comm||'',completedAt:new Date().toISOString()});upd(function(s){s.battlePlan=s.battlePlan.filter(function(x){return x.id!==id;});});actionModal=null;renderOnly();scheduleSave();}
-function chooseFollowUp(){if(!actionModal)return;actionModal={step:'followup',id:actionModal.id,action:actionModal.action,comm:actionModal.comm||'',tag:actionModal.tag||''};renderOnly();setTimeout(function(){var inp=document.getElementById('followup-text-input');if(inp)inp.focus();},50);}
+function chooseFollowUp(){if(!actionModal)return;actionModal={step:'followup',id:actionModal.id,action:actionModal.action,comm:actionModal.comm||'',deal:actionModal.deal||''};renderOnly();setTimeout(function(){var inp=document.getElementById('followup-text-input');if(inp)inp.focus();},50);}
 function chooseMoveToContract(){
   if(!actionModal)return;
   var id=actionModal.id;
@@ -461,25 +451,25 @@ function chooseMoveToContract(){
 }
 function submitFollowUp(){
   if(!actionModal)return;
-  var id=actionModal.id,origAction=actionModal.action,origComm=actionModal.comm||'',origTag=actionModal.tag||'';
+  var id=actionModal.id,origAction=actionModal.action,origComm=actionModal.comm||'',origDeal=actionModal.deal||'';
   var inp=document.getElementById('followup-text-input');
   var customText=inp?inp.value.trim():'';
   if(!customText)customText='Follow-up: '+origAction;
   completedLog.push({id:uid(),action:origAction,completedAt:new Date().toISOString()});
   if(!S.tomorrowPlan)S.tomorrowPlan=[];
-  // Inherit parent tag
-  S.tomorrowPlan.push({id:uid(),done:false,person:'',deal:'',action:customText,flag:'',comm:origComm,tag:origTag});
+  // Inherit parent deal tag
+  S.tomorrowPlan.push({id:uid(),done:false,person:'',deal:origDeal,action:customText,flag:'',comm:origComm});
   upd(function(s){s.battlePlan=s.battlePlan.filter(function(x){return x.id!==id;});});
   actionModal=null;renderOnly();scheduleSave();
 }
 function cancelActionModal(){actionModal=null;renderOnly();}
-function removeTomorrow(id){var item=S.tomorrowPlan?S.tomorrowPlan.find(function(x){return x.id===id;}):null;if(item){item.done=false;S.battlePlan.push({id:uid(),done:false,action:item.action,flag:item.flag||'',comm:item.comm||'',tag:item.tag||''});}upd(function(s){s.tomorrowPlan=(s.tomorrowPlan||[]).filter(function(x){return x.id!==id;});});}
+function removeTomorrow(id){var item=S.tomorrowPlan?S.tomorrowPlan.find(function(x){return x.id===id;}):null;if(item){item.done=false;S.battlePlan.push({id:uid(),done:false,action:item.action,flag:item.flag||'',comm:item.comm||'',deal:item.deal||''});}upd(function(s){s.tomorrowPlan=(s.tomorrowPlan||[]).filter(function(x){return x.id!==id;});});}
 function undoCompleted(logId){var entry=completedLog.find(function(x){return x.id===logId;});if(!entry)return;S.battlePlan.push({id:uid(),done:false,action:entry.action,flag:'',comm:entry.comm||''});completedLog=completedLog.filter(function(x){return x.id!==logId;});renderOnly();scheduleSave();}
 
 function rActionModal(){
   if(!actionModal)return'';
   if(actionModal.step==='choose')return'<div class="modal-bg" onclick="if(event.target===this)cancelActionModal()"><div class="action-modal"><div class="action-modal-title">✅ MARK AS DONE?</div><div class="action-modal-task">'+esc(actionModal.action)+'</div><button class="action-choice-btn choice-complete" onclick="chooseComplete()"><span style="font-size:22px">✅</span><div><div>Log as Complete</div><div style="font-size:12px;font-weight:400;opacity:.8">Timestamps in completed log</div></div></button><button class="action-choice-btn choice-followup" onclick="chooseFollowUp()"><span style="font-size:22px">🔁</span><div><div>Create Next Flow Task</div><div style="font-size:12px;font-weight:400;opacity:.8">Log done + queue next action</div></div></button><button class="action-choice-btn choice-contract" onclick="chooseMoveToContract()"><span style="font-size:22px">📝</span><div><div>Add to Under Contract</div><div style="font-size:12px;font-weight:400;opacity:.8">Move this deal to Under Contract</div></div></button><button class="action-choice-btn choice-cancel" onclick="cancelActionModal()"><span style="font-size:22px">↩️</span><div><div>Cancel</div><div style="font-size:12px;font-weight:400;opacity:.8">Keep on today\'s plan</div></div></button></div></div>';
-  if(actionModal.step==='followup')return'<div class="modal-bg"><div class="action-modal"><div class="action-modal-title">🔁 NEXT FLOW</div><div class="action-modal-task" style="margin-bottom:14px">Completing: '+esc(actionModal.action)+'</div>'+(actionModal.tag?'<div style="margin-bottom:10px"><span class="tag-pill">🏷 '+esc(actionModal.tag)+'</span> <span style="font-size:12px;color:var(--muted)">tag inherited</span></div>':'')+'<div class="followup-input-wrap"><label>Next Flow Action</label><input id="followup-text-input" type="text" placeholder="e.g. File paperwork, send executed copy..." onkeydown="if(event.key===\'Enter\')submitFollowUp()"></div><button class="followup-confirm-btn" onclick="submitFollowUp()" style="margin-bottom:10px">✅ Add to Next Flow</button><button class="action-choice-btn choice-cancel" onclick="cancelActionModal()"><span style="font-size:20px">↩️</span><div><div>Cancel</div></div></button></div></div>';
+  if(actionModal.step==='followup')return'<div class="modal-bg"><div class="action-modal"><div class="action-modal-title">🔁 NEXT FLOW</div><div class="action-modal-task" style="margin-bottom:14px">Completing: '+esc(actionModal.action)+'</div>'+(actionModal.deal?'<div style="margin-bottom:10px"><span class="deal-tag-pill">📁 '+esc(actionModal.deal)+'</span> <span style="font-size:12px;color:var(--muted)">deal tag inherited</span></div>':'')+'<div class="followup-input-wrap"><label>Next Flow Action</label><input id="followup-text-input" type="text" placeholder="e.g. File paperwork, send executed copy..." onkeydown="if(event.key===\'Enter\')submitFollowUp()"></div><button class="followup-confirm-btn" onclick="submitFollowUp()" style="margin-bottom:10px">✅ Add to Next Flow</button><button class="action-choice-btn choice-cancel" onclick="cancelActionModal()"><span style="font-size:20px">↩️</span><div><div>Cancel</div></div></button></div></div>';
   return'';
 }
 
@@ -500,7 +490,7 @@ function toggleSectionRow(key,id){
 }
 function sectionChooseComplete(){if(!sectionActionModal)return;var key=sectionActionModal.key,id=sectionActionModal.id,action=sectionActionModal.action,comm=sectionActionModal.comm;completedLog.push({id:uid(),action:action,comm:comm,completedAt:new Date().toISOString()});upd(function(s){var r=s.sections[key].rows.find(function(x){return x.id===id;});if(r)r.done=true;});sectionActionModal=null;renderOnly();scheduleSave();}
 function sectionChooseFollowUp(){if(!sectionActionModal)return;sectionActionModal={step:'followup',key:sectionActionModal.key,id:sectionActionModal.id,action:sectionActionModal.action,comm:sectionActionModal.comm};renderOnly();setTimeout(function(){var inp=document.getElementById('sec-followup-input');if(inp)inp.focus();},50);}
-function sectionSubmitFollowUp(){if(!sectionActionModal)return;var key=sectionActionModal.key,id=sectionActionModal.id,origAction=sectionActionModal.action,origComm=sectionActionModal.comm;var inp=document.getElementById('sec-followup-input');var customText=inp?inp.value.trim():'';if(!customText)customText='Follow-up: '+origAction;completedLog.push({id:uid(),action:origAction,comm:origComm,completedAt:new Date().toISOString()});if(!S.tomorrowPlan)S.tomorrowPlan=[];S.tomorrowPlan.push({id:uid(),done:false,person:'',deal:'',action:customText,flag:'',comm:origComm,tag:''});upd(function(s){var r=s.sections[key].rows.find(function(x){return x.id===id;});if(r)r.done=true;});sectionActionModal=null;renderOnly();scheduleSave();}
+function sectionSubmitFollowUp(){if(!sectionActionModal)return;var key=sectionActionModal.key,id=sectionActionModal.id,origAction=sectionActionModal.action,origComm=sectionActionModal.comm;var inp=document.getElementById('sec-followup-input');var customText=inp?inp.value.trim():'';if(!customText)customText='Follow-up: '+origAction;completedLog.push({id:uid(),action:origAction,comm:origComm,completedAt:new Date().toISOString()});if(!S.tomorrowPlan)S.tomorrowPlan=[];S.tomorrowPlan.push({id:uid(),done:false,person:'',deal:'',action:customText,flag:'',comm:origComm});upd(function(s){var r=s.sections[key].rows.find(function(x){return x.id===id;});if(r)r.done=true;});sectionActionModal=null;renderOnly();scheduleSave();}
 function cancelSectionModal(){sectionActionModal=null;renderOnly();}
 function rSectionActionModal(){if(!sectionActionModal)return'';if(sectionActionModal.step==='choose')return'<div class="modal-bg" onclick="if(event.target===this)cancelSectionModal()"><div class="action-modal"><div class="action-modal-title">✅ MARK AS DONE?</div><div class="action-modal-task">'+esc(sectionActionModal.action)+'</div><button class="action-choice-btn choice-complete" onclick="sectionChooseComplete()"><span style="font-size:22px">✅</span><div><div>Log as Complete</div><div style="font-size:12px;font-weight:400;opacity:.8">Timestamps it in the completed log</div></div></button><button class="action-choice-btn choice-followup" onclick="sectionChooseFollowUp()"><span style="font-size:22px">🔁</span><div><div>Create Next Flow Task</div><div style="font-size:12px;font-weight:400;opacity:.8">Log as done + queue next action</div></div></button><button class="action-choice-btn choice-cancel" onclick="cancelSectionModal()"><span style="font-size:22px">↩️</span><div><div>Cancel</div></div></button></div></div>';if(sectionActionModal.step==='followup')return'<div class="modal-bg"><div class="action-modal"><div class="action-modal-title">🔁 NEXT FLOW</div><div class="action-modal-task" style="margin-bottom:14px">Completing: '+esc(sectionActionModal.action)+'</div><div class="followup-input-wrap"><label>Next Flow Action</label><input id="sec-followup-input" type="text" placeholder="e.g. Follow up, schedule call..." onkeydown="if(event.key===\'Enter\')sectionSubmitFollowUp()"></div><button class="followup-confirm-btn" onclick="sectionSubmitFollowUp()" style="margin-bottom:10px">✅ Add to Next Flow</button><button class="action-choice-btn choice-cancel" onclick="cancelSectionModal()"><span style="font-size:20px">↩️</span><div><div>Cancel</div></div></button></div></div>';return'';}
 
@@ -511,30 +501,37 @@ function rPersonalModal(){if(!personalModal)return'';return'<div class="modal-bg
 
 function collectPayment(key,rowId){var row=S.sections[key]&&S.sections[key].rows.find(function(r){return r.id===rowId;});if(!row)return;if(!confirm('Mark as COLLECTED?\n\n'+(row.deal||row.item||'This item')+' — '+(row.comm||'')))return;if(!S.closedDeals)S.closedDeals=[];S.closedDeals.push({id:uid(),deal:row.deal||row.item||'',person:row.person||'',comm:row.comm||'',action:row.action||'',collectedAt:new Date().toISOString()});upd(function(s){s.sections[key].rows=s.sections[key].rows.filter(function(r){return r.id!==rowId;});});scheduleSave();}
 
-// ---- BATTLE PLAN ----
+// ---- BATTLE PLAN — single deal dropdown per row, sourced from S.deals ----
 function rBpDealDrop(bpId,cur){
   if(!S.deals)S.deals=[];
   var sorted=(S.deals||[]).slice().sort(function(a,b){return(a.name||'').localeCompare(b.name||'');});
   var opts=sorted.map(function(d){return'<option value="'+esc(d.name)+'" '+(cur===d.name?'selected':'')+'>'+esc(d.name)+'</option>';}).join('');
-  return'<select style="background:var(--bg);color:#7dd3fc;border:1px solid rgba(125,211,252,0.25);border-radius:4px;font-size:13px;padding:2px 4px;min-width:90px;" onchange="bpDealChange('+bpId+',this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New</option></select>';
+  return'<select style="background:var(--bg);color:#7dd3fc;border:1px solid rgba(125,211,252,0.25);border-radius:4px;font-size:13px;padding:2px 4px;min-width:120px;" onchange="bpDealChange('+bpId+',this.value)"><option value="" '+((!cur||cur==='')?'selected':'')+'>— deal —</option>'+opts+'<option value="__new__">➕ New Deal</option></select>';
 }
-function bpDealChange(bpId,val){if(val==='__new__'){var name=prompt('New Deal ID:');if(!name||!name.trim()){renderOnly();return;}var trimmed=name.trim();if(!S.deals)S.deals=[];S.deals.push({id:uid(),name:trimmed,expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''});upd(function(s){var b=s.battlePlan.find(function(x){return x.id===bpId;});if(b)b.deal=trimmed;});}else upd(function(s){var b=s.battlePlan.find(function(x){return x.id===bpId;});if(b)b.deal=val;});}
+function bpDealChange(bpId,val){
+  if(val==='__new__'){
+    var name=prompt('New Deal ID (address or project name):');
+    if(!name||!name.trim()){renderOnly();return;}
+    var trimmed=name.trim();
+    if(!S.deals)S.deals=[];
+    if(!S.deals.find(function(d){return d.name===trimmed;}))
+      S.deals.push({id:uid(),name:trimmed,expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''});
+    upd(function(s){var b=s.battlePlan.find(function(x){return x.id===bpId;});if(b)b.deal=trimmed;});
+  }else{
+    upd(function(s){var b=s.battlePlan.find(function(x){return x.id===bpId;});if(b)b.deal=val;});
+  }
+}
 
 function rBattle(){
   var rows=S.battlePlan.map(function(item,i){
     var g=(drag&&drag.lt==='battle'&&drag.curIdx===i)?'drag-ghost':'';
     var doneStyle=item.done?'opacity:.5;':'';
-    var tagHtml=item.tag?'<span class="tag-pill" style="margin-left:4px">🏷 '+esc(item.tag)+'</span>':'';
     return'<div class="card-row '+g+'" data-drag-row data-drag-lt="battle" data-drag-key="battle" data-drag-idx="'+i+'" style="'+doneStyle+'">'+
       '<span class="drag-handle" onmousedown="startDrag(event,\'battle\',\'battle\','+i+')" ontouchstart="startDrag(event,\'battle\',\'battle\','+i+')">⠿</span>'+
       '<span class="check" style="font-size:18px" onclick="toggleBattle('+item.id+')">'+(item.done?'✅':'⬜')+'</span>'+
       ep('bpf'+item.id,item.flag||'',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.flag=v;})})+
       ' <div style="flex:1;min-width:0">'+
-        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">'+
-          rBpDealDrop(item.id,item.deal||'')+
-          rTagDrop(item.id,item.tag||'—')+
-          tagHtml+
-        '</div>'+
+        '<div style="margin-bottom:4px">'+rBpDealDrop(item.id,item.deal||'')+'</div>'+
         '<div style="font-weight:700;font-size:16px;'+(item.done?'text-decoration:line-through;':'')+'">'+ec('bpa'+item.id,item.action,'var(--text)',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.action=v;})})+'</div>'+
         '<div style="font-size:13px;margin-top:2px">'+ec('bpp'+item.id,item.person||'','var(--muted)',function(v){var id=item.id;upd(function(s){var b=s.battlePlan.find(function(x){return x.id===id;});if(b)b.person=v;})})+'</div>'+
       '</div>'+
@@ -549,14 +546,14 @@ function rBattle(){
   if(S.tomorrowPlan&&S.tomorrowPlan.length){
     tq='<div class="tomorrow-queue"><div class="tomorrow-queue-label">🔁 NEXT FLOW</div>'+
       S.tomorrowPlan.map(function(item){
-        return'<div class="tomorrow-queue-item"><span>'+(item.tag?'<span class="tag-pill" style="margin-right:5px">🏷 '+esc(item.tag)+'</span>':'')+
+        return'<div class="tomorrow-queue-item"><span>'+(item.deal?'<span class="deal-tag-pill" style="margin-right:5px">📁 '+esc(item.deal)+'</span>':'')+
           (item.person?'<span style="color:var(--gold)">'+esc(item.person)+'</span> — ':'')+esc(item.action)+'</span>'+
           '<button class="restore-btn" onclick="removeTomorrow('+item.id+')">↩ Move to Today</button></div>';
       }).join('')+'</div>';
   }
   return'<div class="battle" id="section-battle"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">'+
     '<div class="section-title" style="color:var(--blue)">🔥 BATTLE PLAN</div>'+
-    '<button class="add-btn" style="color:var(--blue);border:1px solid var(--blue)" onclick="upd(function(s){s.battlePlan.push({id:uid(),done:false,person:\'\',deal:\'\',action:\'New item\',comm:\'\',tag:\'\'})})">➕ Add</button>'+
+    '<button class="add-btn" style="color:var(--blue);border:1px solid var(--blue)" onclick="upd(function(s){s.battlePlan.push({id:uid(),done:false,person:\'\',deal:\'\',action:\'New item\',comm:\'\'})})">➕ Add</button>'+
   '</div>'+rows+tq+'</div>';
 }
 
@@ -787,7 +784,7 @@ function rRow(key,row,i,sec,cols){
 }
 function toggleSection(key){collapsed[key]=!collapsed[key];renderOnly();}
 
-// ---- TIME BLOCKS (AM / PM / EOD slots) ----
+// ---- TIME BLOCKS ----
 function getSlot(timeStr){
   var m=parseTime12(timeStr);
   if(m===null)return'EOD';
@@ -1010,7 +1007,7 @@ function rModal(){
   '</div>';
 }
 
-// ---- PIPELINE (clickable jump links) ----
+// ---- PIPELINE ----
 function scrollToSection(anchor){
   var el=document.getElementById('section-'+anchor);
   if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}
@@ -1031,7 +1028,7 @@ function rPipeline(){
       var clickable=r.anchor?'onclick="scrollToSection(\''+r.anchor+'\')" title="Click to jump to section"':'';
       return'<div class="pipeline-row" '+clickable+'>'+
         '<span class="pipeline-row-label">'+r.label+(r.anchor?'<span class="pipeline-jump">↓ jump</span>':'')+'</span>'+
-        '<span style="color:'+r.color+';font-weight:'+(r.bold?800:700)+';font-size:'+(r.bold?18:15)+'px;font-family:Syne Mono,monospace">'+p[Object.keys(p)[rows.indexOf(r)]]+'</span>'+
+        '<span style="color:'+r.color+';font-weight:'+(r.bold?800:700)+';font-size:'+(r.bold?18:15)+'px;font-family:Syne Mono,monospace">'+esc(r.val||'')+'</span>'+
       '</div>';
     }).join('')+
   '</div>';
@@ -1172,7 +1169,6 @@ function renderOnly(){
   var tableSections=['farm','schedule'];
   var tableHtml=tableSections.filter(function(k){return S.sections[k];}).map(rSection).join('');
 
-  // Fix pipeline values
   var p=S.pipeline;
   var pRows=[
     {label:'💰 Collectible Now',val:p.collectible,color:'var(--red)',anchor:'collect'},
@@ -1223,17 +1219,17 @@ var DEFAULT={
     {id:3,flag:"👑",dealRef:"Hank Saurage — Plaquemine",deal:"Hank Saurage — Plaquemine PSA",why:"Ball is YOUR COURT. Review buyer PSA comments and respond. EHVP — always first.",comm:"$14,063"}
   ],
   battlePlan:[
-    {id:1,done:false,person:"Melissa Stockstill",deal:"",action:"Call Melissa — LA Blue separate deal — DEPARTS 3/13",comm:"TBD",tag:""},
-    {id:2,done:false,person:"Art / Daniel",deal:"",action:"Finalize Lease for Signature",comm:"",tag:""},
-    {id:3,done:false,person:"",deal:"Dutch Brothers — GVI",action:"GVI Dutch Bros — File Executed PSA",comm:"$16,650",tag:"Dutch Brothers — GVI"},
-    {id:4,done:false,person:"Jan Frey",deal:"",action:"Get Signature on PSA — 8:30 AM",comm:"",tag:""},
-    {id:5,done:false,person:"LA Blue",deal:"",action:"Get Official Response on Jessie Babcock — Production Building Monroe",comm:"",tag:"LA Blue Monroe Portfolio"},
-    {id:6,done:false,person:"Red Robinson",deal:"",action:"VALS — Call: Rough In Electrical Inspection",comm:"",tag:""},
-    {id:7,done:false,person:"",deal:"",action:"VALS — Framing Inspection",comm:"",tag:""},
-    {id:8,done:false,person:"Leslie Newman",deal:"",action:"VALS — Send DocuSign",comm:"",tag:""},
-    {id:9,done:false,person:"Sean McLaurin",deal:"RaceTrac Land",action:"Call Sean McLaurin — RaceTrac",comm:"$48,000",tag:"RaceTrac Land"},
-    {id:10,done:false,person:"LA Blue",deal:"",action:"Get Parking Figures Back to LA Blue",comm:"",tag:"LA Blue Monroe Portfolio"},
-    {id:11,done:false,person:"Tim Hurless",deal:"",action:"AWC — Ball in Broker's Court",comm:"",tag:""}
+    {id:1,done:false,person:"Melissa Stockstill",deal:"",action:"Call Melissa — LA Blue separate deal — DEPARTS 3/13",comm:"TBD"},
+    {id:2,done:false,person:"Art / Daniel",deal:"",action:"Finalize Lease for Signature",comm:""},
+    {id:3,done:false,person:"",deal:"Dutch Brothers — GVI",action:"GVI Dutch Bros — File Executed PSA",comm:"$16,650"},
+    {id:4,done:false,person:"Jan Frey",deal:"",action:"Get Signature on PSA — 8:30 AM",comm:""},
+    {id:5,done:false,person:"LA Blue",deal:"LA Blue Monroe Portfolio",action:"Get Official Response on Jessie Babcock — Production Building Monroe",comm:""},
+    {id:6,done:false,person:"Red Robinson",deal:"VALS",action:"VALS — Call: Rough In Electrical Inspection",comm:""},
+    {id:7,done:false,person:"",deal:"VALS",action:"VALS — Framing Inspection",comm:""},
+    {id:8,done:false,person:"Leslie Newman",deal:"VALS",action:"VALS — Send DocuSign",comm:""},
+    {id:9,done:false,person:"Sean McLaurin",deal:"RaceTrac Land",action:"Call Sean McLaurin — RaceTrac",comm:"$48,000"},
+    {id:10,done:false,person:"LA Blue",deal:"LA Blue Monroe Portfolio",action:"Get Parking Figures Back to LA Blue",comm:""},
+    {id:11,done:false,person:"Tim Hurless",deal:"",action:"AWC — Ball in Broker's Court",comm:""}
   ],
   timeBlocks:[
     {id:1,time:"8:30 AM",event:"Jan Frey PSA Execution",flag:"📝"},
@@ -1292,11 +1288,23 @@ var DEFAULT={
   },
   closedDeals:[],
   deals:[
-    {id:9001,name:'4950 Government St',expanded:false,sqft:'',price:'',contact:'Donnie Braud',dealType:'Sale',status:'Under Contract',commission:'$13,200',notes:'Under contract — need pertinent dates',keyDates:''},
+    {id:9001,name:'Government St. 4950',expanded:false,sqft:'',price:'',contact:'Donnie Braud',dealType:'Sale',status:'Under Contract',commission:'$13,200',notes:'Under contract — need pertinent dates',keyDates:''},
     {id:9002,name:'Hank Saurage — Plaquemine',expanded:false,sqft:'',price:'',contact:'Hank Saurage',dealType:'Sale',status:'Active',commission:'$14,063',notes:'Review buyer PSA comments & respond',keyDates:''},
     {id:9003,name:'LA Blue Monroe Portfolio',expanded:false,sqft:'',price:'',contact:'Connie Spivey',dealType:'Lease',status:'Active',commission:'$300,000',notes:'Activate all platforms',keyDates:''},
     {id:9004,name:'RaceTrac Land',expanded:false,sqft:'',price:'',contact:'',dealType:'Land',status:'Active',commission:'$48,000',notes:'Awaiting DOTD Approval',keyDates:''},
-    {id:9005,name:'Dutch Brothers — GVI',expanded:false,sqft:'',price:'',contact:'',dealType:'Sale',status:'Under Contract',commission:'$16,650',notes:'Need pertinent dates, deposit & DD material',keyDates:''}
+    {id:9005,name:'Dutch Brothers — GVI',expanded:false,sqft:'',price:'',contact:'',dealType:'Sale',status:'Under Contract',commission:'$16,650',notes:'Need pertinent dates, deposit & DD material',keyDates:''},
+    {id:9006,name:'VALS',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9007,name:'UPALS',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9008,name:'X-CHECKER (AWC)',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9009,name:'X-CHECKER (Interline)',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9010,name:'SUPERNOVA',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9011,name:'Ashley Furniture',expanded:false,sqft:'',price:'',contact:'',dealType:'Lease',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9012,name:'Darla Partners',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9013,name:'Government St. (Food Bank)',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9014,name:'Jefferson 619',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9015,name:'LA Blue - Shreveport',expanded:false,sqft:'',price:'',contact:'',dealType:'Lease',status:'Active',commission:'',notes:'',keyDates:''},
+    {id:9016,name:'Wicker Park - Hobby Lobby',expanded:false,sqft:'',price:'',contact:'',dealType:'Sale',status:'Active',commission:'$200,000',notes:'',keyDates:''},
+    {id:9017,name:'1600 Government',expanded:false,sqft:'',price:'',contact:'',dealType:'',status:'Active',commission:'',notes:'',keyDates:''}
   ],
   pipeline:{collectible:"~$61,600",pending:"~$267,996",farm:"$200,000",activation:"$300,000",total:"~$829,596"}
 };
